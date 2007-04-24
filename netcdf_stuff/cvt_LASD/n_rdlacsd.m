@@ -2,8 +2,9 @@ function n_rdlacsd(sta)
 % N_RDLACSD - Read LACSD ACDP ASCII files
 %   expects the names to end in 305
 %   takes one argument- the root name of the files to process
-%      rdlacsd('LA00A5');
+%      n_rdlacsd('LA00A5');
 %   outputs a root_name.mat file with the data and some header information
+%   called by do_cvt_lacsd.m
 
 
 %% Build file list
@@ -16,14 +17,17 @@ function n_rdlacsd(sta)
    nbr=fnames(lcs(ik)-2:lcs(ik)-1);
    h(ik)=str2num(nbr);
   end
-  % have to sort the depths sincw ls retruns a row that's out of order
-  h=sort(h);
+  % have to sort the depths since ls returns a list that's out of order
+  % and by ADCP convention, first depth is deepest, sort large to small
+  h=sort(h,'descend');
   
 % h = [5:3:62]';
 nh = length(h);
 for i=1:length(h)
    fn(i) = {[sta,sprintf('%02d',h(i)),'.305']};
 end
+%  here fn and h are sorted deepest to surface, so the matrix is created in
+%  the desired order
 
 %% Read one file for dimensions
 fid = fopen(fn{1});
@@ -126,24 +130,14 @@ clear t tnew
 clear lcs nbr fnames ik nh nf intext C l1 lt ln lns lx stidx
 clear dsnidx arindx vname vval blnk m15 mins strt_min end_min
 
-%% NaN stuff
-u(find(u<-900))=1e35; %fprintf(1,'Found %d NaNs in u.\n',sum(isnan(u(:))));
-v(find(v<-900))=1e35; %fprintf(1,'Found %d NaNs in v.\n',sum(isnan(v(:))));
-a(find(a<-900))=1e35; %fprintf(1,'Found %d NaNs in a.\n',sum(isnan(a(:))));
-s(find(s<-900))=1e35; %fprintf(1,'Found %d NaNs in s.\n',sum(isnan(s(:))));
-c(find(c<-900))=1e35; %fprintf(1,'Found %d NaNs in c.\n',sum(isnan(c(:))));
+%% replace LACSD missing values with 1e35 
+u(find(u<-900))=1e35; 
+v(find(v<-900))=1e35; 
+a(find(a<-900))=1e35; 
+s(find(s<-900))=1e35; 
+c(find(c<-900))=1e35; 
 
 %% Save data
-%z = repmat(-h,1,length(t))';
-% put into a structure to return to calling program
-%To make bin1 deepest, have to flip the vectors
-h=flipud(h'); 
-%h=flipud(z); 
-u=fliplr(u);   % flipud is wrong!  flips the time deimension
-v=fliplr(v);   % fliplr reverses the bins, which is what we want!!
-s=fliplr(s); 
-c=fliplr(c); 
-a=fliplr(a); 
 
 eval(['save ',sta,'.mat'])
 

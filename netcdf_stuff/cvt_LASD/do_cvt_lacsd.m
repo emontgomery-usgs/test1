@@ -1,7 +1,7 @@
-% script do_cvt_LACSD
+% script do_cvt_lacsd
 % runs the programs needed to read the SAIC ascii files and save them as
 % .mat, then read the .mat files and save as .cdf files.
-% The metadata in the .cdf files is esctacted from the header info in the
+% The metadata in the .cdf files is exctacted from the header info in the
 % ascii files.
 
   % start be combining the ascii files to matrices in one .mat
