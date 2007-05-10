@@ -10,13 +10,11 @@ variables:
 		time:units = "True Julian Day" ;
 		time:type = "UNEVEN" ;
 		time:epic_code = 624 ;
-		time:_FillValue = 1.e+035f ;
 	int time2(time) ;
 		time2:FORTRAN_format = "F10.2" ;
 		time2:units = "msec since 0:00 GMT" ;
 		time2:type = "UNEVEN" ;
 		time2:epic_code = 624 ;
-		time2:_FillValue = 1.e+035f ;
 	float depth(depth) ;
 		depth:FORTRAN_format = "F10.2" ;
 		depth:units = "m" ;
@@ -25,7 +23,6 @@ variables:
 		depth:long_name = "DEPTH (m)" ;
 		depth:blanking_distance = 1.0 ;
 		depth:bin_size = 3. ;
-		depth:_FillValue = 1.e+035f ;
 		depth:NOTE = "Depth from LACSD file, line 1" ;
 	float lon(lon) ;
 		lon:FORTRAN_format = "f10.4" ;
@@ -35,7 +32,6 @@ variables:
 		lon:name = "LON" ;
 		lon:long_name = "LONGITUDE" ;
 		lon:generic_name = "lon" ;
-		lon:_FillValue = 1.e+35f ;
 	float lat(lat) ;
 		lat:FORTRAN_format = "F10.2" ;
 		lat:units = "degree_north" ;
@@ -44,7 +40,6 @@ variables:
 		lat:name = "LAT" ;
 		lat:long_name = "LATITUDE" ;
 		lat:generic_name = "lat" ;
-		lat:_FillValue = 1.e+35f ;
 	float u_1205(time, depth, lat, lon) ;
 		u_1205:name = "u" ;
 		u_1205:long_name = "Eastward Velocity" ;
