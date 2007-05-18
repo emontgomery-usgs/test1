@@ -8,12 +8,12 @@ variables:
 	int time(time) ;
 		time:FORTRAN_format = "F10.2" ;
 		time:units = "True Julian Day" ;
-		time:type = "UNEVEN" ;
+		time:type = "EVEN" ;
 		time:epic_code = 624 ;
 	int time2(time) ;
 		time2:FORTRAN_format = "F10.2" ;
 		time2:units = "msec since 0:00 GMT" ;
-		time2:type = "UNEVEN" ;
+		time2:type = "EVEN" ;
 		time2:epic_code = 624 ;
 	float depth(depth) ;
 		depth:FORTRAN_format = "F10.2" ;
@@ -113,8 +113,6 @@ variables:
 // global attributes:
 		:CREATION_DATE = "15-Feb-2005 15:10:54" ;
 		:MOORING = "LA00A5" ;
-		:Deployment_date = "09-sep-2004" ;
-		:Recovery_date = "09-feb-2005" ;
 		:INST_TYPE = "Sontek ADP" ;
 		:history = "ASCII files sent to USGS April, 2007. Converted to netcdf using n_rdlacsd.m and n_wrtnc.m" ;
 		:firmware_version = 6.7f ;
@@ -142,7 +140,7 @@ variables:
 		:latitude = 42.3786 ;
 		:DATA_CMNT = "metadata from ascii headers- may be incomplete" ;
 		:FILL_FLAG = 1 ;
-		:COMPOSITE = 0 ;
+		:COMPOSITE = 1 ;
 		:VAR_DESC = "u:v:ampl:snr:stdcor" ;
 		:DELTA_T = "900" ;
 		:start_time = "22-Sep-2004 15:12:30" ;

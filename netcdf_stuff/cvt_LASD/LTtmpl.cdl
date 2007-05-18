@@ -1,0 +1,82 @@
+netcdf 7612bt-a {
+dimensions:
+	time = UNLIMITED ; // (19615 currently)
+	depth = xxdepthxx ;
+	lon = 1 ;
+	lat = 1 ;
+variables:
+	int time(time) ;
+		time:FORTRAN_format = "F10.2" ;
+		time:units = "True Julian Day" ;
+		time:type = "EVEN" ;
+		time:epic_code = 624 ;
+	int time2(time) ;
+		time2:FORTRAN_format = "F10.2" ;
+		time2:units = "msec since 0:00 GMT" ;
+		time2:type = "EVEN" ;
+		time2:epic_code = 624 ;
+	float depth(depth) ;
+		depth:FORTRAN_format = "F10.2" ;
+		depth:units = "m" ;
+		depth:type = "EVEN" ;
+		depth:epic_code = 3 ;
+		depth:long_name = "DEPTH (m)" ;
+		depth:NOTE = "Depth from LACSD file, line 1" ;
+	float lon(lon) ;
+		lon:FORTRAN_format = "f10.4" ;
+		lon:units = "degree_east" ;
+		lon:type = "EVEN" ;
+		lon:epic_code = 502 ;
+		lon:name = "LON" ;
+		lon:long_name = "LONGITUDE" ;
+		lon:generic_name = "lon" ;
+	float lat(lat) ;
+		lat:FORTRAN_format = "F10.2" ;
+		lat:units = "degree_north" ;
+		lat:type = "EVEN" ;
+		lat:epic_code = 500 ;
+		lat:name = "LAT" ;
+		lat:long_name = "LATITUDE" ;
+		lat:generic_name = "lat" ;
+       float T_28(time, depth, lat, lon) ;
+                T_28:name = "T" ;
+                T_28:long_name = "TEMPERATURE (C)          " ;
+                T_28:generic_name = "temp" ;
+                T_28:FORTRAN_format = "f10.2" ;
+                T_28:units = "C" ;
+                T_28:sensor_type = "Aquatec thermistor string" ;
+                T_28:epic_code = 28 ;
+                T_28:minimum = 10.271f ;
+                T_28:maximum = 15.163f ;
+                T_28:valid_range = 0.f, 50.f ;
+                T_28:_FillValue = 1.e+35f ;
+
+// global attributes:
+		:CREATION_DATE = "15-Feb-2005 15:10:54" ;
+		:MOORING = "LA00A5" ;
+		:INST_TYPE = "Aquatec thermistor string" ;
+		:history = "ASCII files sent to USGS April, 2007. Converted to netcdf using n_rdlacsdt.m and n_wrtnct.m" ;
+		:DATA_TYPE = " " ;
+		:DATA_SUBTYPE = "MOORED" ;
+		:DATA_ORIGIN = "Los Angeles County Sanitation Districts" ;
+		:COORD_SYSTEM = "GEOGRAPHIC" ;
+		:WATER_MASS = "?" ;
+		:POS_CONST = 0 ;
+		:DEPTH_CONST = 0 ;
+		:WATER_DEPTH = 32.7271690368652 ;
+		:DRIFTER = 0 ;
+		:VAR_FILL = 1.00000004091848e+35 ;
+		:EXPERIMENT = "LACSD Palos Verdes" ;
+		:PROJECT = "LACSD" ;
+		:DESCRIPT = "A5 Temperature" ;
+		:longitude = -70.7808 ;
+		:latitude = 42.3786 ;
+		:DATA_CMNT = "metadata from ascii headers: water_depth and postion from ADCP file headers" ;
+		:FILL_FLAG = 1 ;
+		:COMPOSITE = 1 ;
+		:VAR_DESC = "t" ;
+		:DELTA_T = "900" ;
+		:start_time = "22-Sep-2004 15:12:30" ;
+		:stop_time = "15-Nov-2004 13:42:30" ;
+		:magnetic_variation = 13.6 ;
+}

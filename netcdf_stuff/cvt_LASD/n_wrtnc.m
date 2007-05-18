@@ -113,8 +113,6 @@ function n_wrtnc(stn)
  %replace global metadata attributes
     ncw.MOORING=sta;
     ncw.WATER_DEPTH=wdep;
-    ncw.Deployment_date=DeploymentStartDate(2:11);
-    ncw.Recovery_date='2006/6/9';
     ncw.CREATION_DATE=datestr(now);
     ncw.longitude=dlon;
     ncw.latitude=dlat;
