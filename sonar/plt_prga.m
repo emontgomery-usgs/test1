@@ -1,11 +1,14 @@
 function plt_prga(pr,ha,ga,PenHeader)
 %
-%  after running view_mg, do this with the output sweeps, where 
+%  this program is intended for use with .81a files created in real time
+%  they may have gain changing with time, and WILL have multiple sweeps.
+%
+%  run view_pen, first, the plt_prga
 %   pr is ProfileRange
 %   ha is Headangle
 %   ga is the gain at the start of the sweep
 %   PenHeader is the header info for this file
-%   I'm not sure what determines this number, as it's different between files 
+%
  mnx=-PenHeader.Range(1);
  mxx=PenHeader.Range(1);
  mny=-1.5;
@@ -41,6 +44,8 @@ for ik=1:stp
     %text(1, -1.3,['gain ' num2str(ga(ik)) '; range = ', num2str(PenHeader.Range(ik))])
     hold on
     k=k+1;
+  % I tried to make this into a movie but had the usual trouble with axes
+  % uncomment this if packaging it is important.
   % now add frames
   % gca or gcf??
    % fr(ik) = getframe(gca);
