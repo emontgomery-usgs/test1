@@ -1,0 +1,50 @@
+function fix_ct_sensordepth(ncfilename,inst_dep)
+% corrects lat lon for a given .nc file
+% usage fix_ct_sensordepth('7443pt-a',10.1499 )
+% etm (after fl code) 5/23/06
+
+
+%%% START USGS BOILERPLATE -------------%%
+% This program was written to modify a netCDF file in some way.
+% It is self documenting- there is currently no other publication 
+% describing the use of this software.
+%
+% Program written in Matlab v7.4,0.287 (R2007a)
+% Program ran on PC with Windows XP Professional OS.
+% The software requires the netcdf toolbox and mexnc, both available
+% from SourceForge (http://www.sourceforge.net)
+%
+% "Although this program has been used by the USGS, no warranty, 
+% expressed or implied, is made by the USGS or the United States 
+% Government as to the accuracy and functioning of the program 
+% and related program material nor shall the fact of distribution 
+% constitute any such warranty, and no responsibility is assumed 
+% by the USGS in connection therewith."
+%%% END USGS BOILERPLATE --------------
+
+ 
+perloc=findstr('.',ncfilename);
+new_nm=[ncfilename(1:perloc-1) '_old.nc'];
+
+result=fcopy(ncfilename,new_nm);
+nc = netcdf(ncfilename, 'write');
+if isempty(nc), return, end
+ 
+%% Global attributes:
+lfeed = char(10);
+nc.CREATION_DATE = ncchar(datestr(now,0));
+history = ['attributes corrected.:' nc.history(:)];
+ifeed = findstr(history,lfeed);
+history(ifeed) = ':';
+nc.history = ncchar(history);
+nc.history = ncchar(history);
+ if (nc.inst_depth ~= inst_dep)
+   nc.inst_depth = ncfloat(inst_dep);
+ end
+% variable attributes
+nc{'T_28'}.sensor_depth=ncfloat(inst_dep);
+nc{'C_51'}.sensor_depth=ncfloat(inst_dep);
+nc{'S_40'}.sensor_depth=ncfloat(inst_dep);
+nc{'STH_71'}.sensor_depth=ncfloat(inst_dep);
+nc{'depth'}(1)=inst_dep;
+close(nc)
