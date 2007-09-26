@@ -1,0 +1,532 @@
+runadcp
+ %function [theResult] = runadcp(numRawFile,rawdata1,rawdata2,rawcdf,theFilledFile,theMaskFile,...
+ 		theNewADCPFile,trimFile);
+
+
+
+Converting RDI data file to netcdf
+You will be asked for some inputs from the mooring log
+ 
+rdi2cdf.m version 3.0 10-Jan-2003
+Header information from adcp file C:\Working\Demo\9991wh000.000
+Number of bytes per ensemble 466
+Number of data types 6
+
+nbytes =
+
+   466
+
+
+nt =
+
+     6
+
+
+offsets =
+
+    18
+    71
+   136
+   266
+   332
+   398
+
+CPU Version 16.21
+Hardware Configuration for LSB 202
+	System Frequency = 300 kHz
+	Convex Beam
+Sensor Configuration #1
+	Transducer head attached
+	Upward facing beam orientation
+Hardware Configuration MSB 65
+	Beam angle = 20 degrees
+	4-beam janus configuration
+The data is real
+Number of beams used to calculate velocity data:  4
+Number of depth cells 16
+Pings per ensemble 300
+Depth cell size 200 cm
+Blank after xmit distance 176 cm
+Profiling mode 1
+Valid range for correlation 64
+Code repetitions 5
+Minimum and maximum percent good for output 0
+Minimum and Maximum Error Velocity values permitted 2000 mm/s
+Time between ping groups 
+Coordinate Transformation = 7
+	Data stored coordinates = Beam
+Heading alignment 0
+Heading Bias: 0 deg
+Sensor Source = 127
+  Sound speed computed from ED, ES & ET
+  ED taken from depth sensor
+  EH taken from xducer heading sensor
+  EP taken from xducer pitch sensor
+  ER taken from xducer roll sensor
+  ES derived from conductivity sensor
+  ET taken from temperature sensor
+Sensor Availability = 29
+	heading sensor installed
+	pitch sensor installed
+	roll sensor installed
+	temperature sensor installed
+Distance to center of bin 1: 422 cm
+Transmit pulse length 244
+Starting water layer 1
+Ending water layer 5
+False target reject range values 50
+Transmit lag distance 49
+-----------
+
+infilesize =
+
+      234468
+
+501 ensembles estimated from file size
+99 ensembles read, 99 converted in 9.296600e+001 sec
+199 ensembles read, 199 converted in 9.374500e+001 sec
+299 ensembles read, 299 converted in 9.452400e+001 sec
+399 ensembles read, 399 converted in 9.530300e+001 sec
+499 ensembles read, 499 converted in 9.608300e+001 sec
+Conversion complete
+9.609800e+001 seconds elapsed while processing
+700 was the number of the last ensemble read
+In the following figure quickly review the data
+Then click "Done" on the Starbeam menu, and hit enter
+fixEns is currently running version 2.0
+Yippie...there are no missing ensembles!! :) :) :) :) :) :) :) 
+ ## closed: ncid = 3.
+Running mask functions to remove bad data points
+runmask is currently running
+ ## Data File: c:\working\Demo\9991wh000.cdf
+ ## Mask File: c:\working\Demo\9991wh000.msk
+ ## Defining dimensions ...
+ ##    ensemble ...
+ ##    bin ...
+ ## Defining variables ...
+ ##    D ...
+ ##    TIM ...
+ ##    Rec ...
+ ##    sv ...
+ ##    vel1 ...
+ ##    vel2 ...
+ ##    vel3 ...
+ ##    vel4 ...
+ ##    cor1 ...
+ ##    cor2 ...
+ ##    cor3 ...
+ ##    cor4 ...
+ ##    AGC1 ...
+ ##    AGC2 ...
+ ##    AGC3 ...
+ ##    AGC4 ...
+ ##    PGd1 ...
+ ##    PGd2 ...
+ ##    PGd3 ...
+ ##    PGd4 ...
+ ##    Hdg ...
+ ##    Ptch ...
+ ##    Roll ...
+ ##    Tx ...
+ ##    xmitc ...
+ ##    xmitv ...
+ ##    dac ...
+ ##    VDD3 ...
+ ##    VDD1 ...
+ ##    VDC ...
+ ##    Pressure ...
+ ## Filling record-variables ...
+ ##    TIM ...
+ ##    Rec ...
+ ##    sv ...
+ ##    vel1 ...
+ ##    vel2 ...
+ ##    vel3 ...
+ ##    vel4 ...
+ ##    cor1 ...
+ ##    cor2 ...
+ ##    cor3 ...
+ ##    cor4 ...
+ ##    AGC1 ...
+ ##    AGC2 ...
+ ##    AGC3 ...
+ ##    AGC4 ...
+ ##    PGd1 ...
+ ##    PGd2 ...
+ ##    PGd3 ...
+ ##    PGd4 ...
+ ##    Hdg ...
+ ##    Ptch ...
+ ##    Roll ...
+ ##    Tx ...
+ ##    xmitc ...
+ ##    xmitv ...
+ ##    dac ...
+ ##    VDD3 ...
+ ##    VDD1 ...
+ ##    VDC ...
+ ##    Pressure ...
+ ## Done.
+Created mask file, 
+C:\Working\Demo\9991wh000.msk
+Pulling out the needed Global attributes from the Data file
+This information sets the criteria for masking
+
+vel =
+
+       -2204        2416
+
+ ## vel1 ...
+ ## vel2 ...
+ ## vel3 ...
+ ## vel4 ...
+ ## cor1 ...
+ ## cor2 ...
+ ## cor3 ...
+ ## cor4 ...
+ ## AGC1 ...
+ ## AGC2 ...
+ ## AGC3 ...
+ ## AGC4 ...
+ ## PGd1 ...
+ ## PGd2 ...
+ ## PGd3 ...
+ ## PGd4 ...
+The mask is filled 
+ ## closed: ncid = 4.
+ ## closed: ncid = 3.
+In the following figure bad velocity data are displayed in black
+Mark any additional bad data points
+Then click "Done" on the StarBare menu, and hit enter
+        1 file(s) copied. 
+ ## Masking: D
+ ## Remaining: 16 records...
+ ## Masking: TIM
+ ## Remaining: 501 records...
+ ## Masking: Rec
+ ## Remaining: 501 records...
+ ## Masking: sv
+ ## Remaining: 501 records...
+ ## Masking: vel1
+ ## Remaining: 501 records...
+ ## Masking: vel2
+ ## Remaining: 501 records...
+ ## Masking: vel3
+ ## Remaining: 501 records...
+ ## Masking: vel4
+ ## Remaining: 501 records...
+ ## Masking: cor1
+ ## Remaining: 501 records...
+ ## Masking: cor2
+ ## Remaining: 501 records...
+ ## Masking: cor3
+ ## Remaining: 501 records...
+ ## Masking: cor4
+ ## Remaining: 501 records...
+ ## Masking: AGC1
+ ## Remaining: 501 records...
+ ## Masking: AGC2
+ ## Remaining: 501 records...
+ ## Masking: AGC3
+ ## Remaining: 501 records...
+ ## Masking: AGC4
+ ## Remaining: 501 records...
+ ## Masking: PGd1
+ ## Remaining: 501 records...
+ ## Masking: PGd2
+ ## Remaining: 501 records...
+ ## Masking: PGd3
+ ## Remaining: 501 records...
+ ## Masking: PGd4
+ ## Remaining: 501 records...
+ ## Masking: Hdg
+ ## Remaining: 501 records...
+ ## Masking: Ptch
+ ## Remaining: 501 records...
+ ## Masking: Roll
+ ## Remaining: 501 records...
+ ## Masking: Tx
+ ## Remaining: 501 records...
+ ## Masking: xmitc
+ ## Remaining: 501 records...
+ ## Masking: xmitv
+ ## Remaining: 501 records...
+ ## Masking: dac
+ ## Remaining: 501 records...
+ ## Masking: VDD3
+ ## Remaining: 501 records...
+ ## Masking: VDD1
+ ## Remaining: 501 records...
+ ## Masking: VDC
+ ## Remaining: 501 records...
+ ## Masking: Pressure
+ ## Remaining: 501 records...
+Masking is complete based on the read mask file
+goodends is currently running
+
+ddate =
+
+19-may-2004
+
+
+rdate =
+
+24-may-2004
+
+ checking vel1 ...
+ checking vel2 ...
+ checking vel3 ...
+ checking vel4 ...
+Based on the # of good bins, 55 is the first good ensemble
+and 501 is the last good, out of 501 total ensembles
+from the file C:\Working\Demo\9991wh000.msk
+ 
+Based on pitch and roll, 55 is the first good ensemble
+and 446 is the last good, out of 501 total ensembles
+in file C:\Working\Demo\9991whM.cdf
+ 
+
+minT =
+
+19-May-2004
+
+
+maxT =
+
+23-May-2004
+
+The last good ensemble was chosen based on recovery date
+Number of good bins, roll, and pitch gave ensemble 55 recorded on 19-May-2004
+ 
+The first good ensemble occurs at 19-May-2004
+and the recorded deployment date is 19-may-2004
+Trimming file from ensemble 55 to 501
+ 
+src =
+ 
+          NetCDF_File: 'c:\working\Demo\9991whM.cdf'
+          nDimensions: 2
+           nVariables: 31
+    nGlobalAttributes: 45
+      RecordDimension: 'ensemble'
+             nRecords: 501
+           Permission: 'nowrite'
+           DefineMode: 'data'
+             FillMode: 'fill'
+           MaxNameLen: 0
+
+ 
+dst =
+ 
+          NetCDF_File: 'c:\working\Demo\9991whT.cdf'
+          nDimensions: 0
+           nVariables: 0
+    nGlobalAttributes: 0
+      RecordDimension: ''
+             nRecords: 0
+           Permission: 'clobber'
+           DefineMode: 'define'
+             FillMode: 'fill'
+           MaxNameLen: 0
+
+ 
+theRecdim =
+ 
+    NetCDF_Dimension: 'ensemble'
+           itsLength: 501
+
+ ## nctrim: copying "D"
+ ## nctrim: trimming "TIM"
+ ## nctrim: trimming "Rec"
+ ## nctrim: trimming "sv"
+ ## nctrim: trimming "vel1"
+ ## nctrim: trimming "vel2"
+ ## nctrim: trimming "vel3"
+ ## nctrim: trimming "vel4"
+ ## nctrim: trimming "cor1"
+ ## nctrim: trimming "cor2"
+ ## nctrim: trimming "cor3"
+ ## nctrim: trimming "cor4"
+ ## nctrim: trimming "AGC1"
+ ## nctrim: trimming "AGC2"
+ ## nctrim: trimming "AGC3"
+ ## nctrim: trimming "AGC4"
+ ## nctrim: trimming "PGd1"
+ ## nctrim: trimming "PGd2"
+ ## nctrim: trimming "PGd3"
+ ## nctrim: trimming "PGd4"
+ ## nctrim: trimming "Hdg"
+ ## nctrim: trimming "Ptch"
+ ## nctrim: trimming "Roll"
+ ## nctrim: trimming "Tx"
+ ## nctrim: trimming "xmitc"
+ ## nctrim: trimming "xmitv"
+ ## nctrim: trimming "dac"
+ ## nctrim: trimming "VDD3"
+ ## nctrim: trimming "VDD1"
+ ## nctrim: trimming "VDC"
+ ## nctrim: trimming "Pressure"
+ 
+trimbins is currently running
+
+buttonname =
+
+RDI Surface Program
+
+
+cpfile =
+
+c:\working\demo\9991wh0.000
+
+        1 file(s) copied. 
+Running RDI surface program
+RDI surface program found the following depth constraints in meters: min = 24.42 max = 28.84 Mean = 26.3331
+Current plot held
+User modified depth constraints in meters: min = 24.42 max = 28.01 Mean = 26.3229
+ADCP measured 29.6229 m from surface to the seabed (mean sea level)
+The tidal range is approximately 0.92275 m
+ 
+ 
+Finding the good bins
+Redefining the "Bin" dimension
+May take a few minutes...
+# in Dsurf 447
+# in ensemble 447
+ 
+f =
+ 
+          NetCDF_File: 'c:\working\demo\9991whT.cdf'
+          nDimensions: 2
+           nVariables: 32
+    nGlobalAttributes: 45
+      RecordDimension: 'ensemble'
+             nRecords: 447
+           Permission: 'write'
+           DefineMode: 'data'
+             FillMode: 'fill'
+           MaxNameLen: 0
+
+ 
+File C:\Working\Demo\9991whT.cdf has been modified
+## 5 bins were removed from the top of the water column
+
+ans =
+
+C:\Working\Demo\9991whT.cdf
+
+adcp2ep
+adcp2ep is currently running
+ function epDataFile = adcp2ep(adcpFile, epDataFile, ADCPtype, dlgFile)
+  This function is used to translate RDI ADCP data into variables that are
+  in terms of earth coordinates and create an epic compatible data file.
+  If the data is in Beam coordinates it will be transformed by runbm2g.m into
+  Earth coordinates.  This transformation can be run on workhorse and broad
+  band data, but the ADCP type must be specified.
+ 
+  Magnetic Declination
+ 		If a magnetic declination was provided to the insturment prior to 
+ 	deployment or to rdi2cdf in post-processing it will be applied at this
+ 	time for both Earth and Beam coordinat data
+ 
+ Inputs:
+ 	adcpFile = the ADcp data file in beam coordinates 
+ 		(Note:if running routines in sequence it should be the trimFile.)
+ 	epDataFile = the new Epic compatable file that will be created 
+ 	ADCPtype = WH or BB; will default to WH if not specified
+ 		WH = workhorse, BB = broad band
+ 		note: if BB, do not need a dlgFile
+ 	dlgFile = the dialog file that was created when the ADCP was "deployed"
+ 
+ 	Note: If the names of the files are not given, they will be requested.	
+ 
+  Output:
+ 	epDataFile = same as input
+
+
+
+
+delta =
+
+   900
+
+TIM was corrected by 150 sec = half the ensemble time
+ 
+Converting "TIM" to "time" and "time2"
+The file has 447 ensembles and 11 bins
+ 
+Averaging echo intensity
+ 
+Averaging percent good
+Data in Beam coordinates is being transformed to Earth
+runbm2g is currently running
+Obtaining Beam configuration information from C:\Working\Demo\wh999.dlg
+Beam Width:   3.7 degrees
+ 
+B =
+ 
+          NetCDF_File: 'c:\working\demo\9991whT.cdf'
+          nDimensions: 2
+           nVariables: 32
+    nGlobalAttributes: 45
+      RecordDimension: 'ensemble'
+             nRecords: 447
+           Permission: 'nowrite'
+           DefineMode: 'data'
+             FillMode: 'fill'
+           MaxNameLen: 0
+
+100 ensembles converted in 6.748000e+000 sec
+200 ensembles converted in 1.329400e+001 sec
+300 ensembles converted in 1.991800e+001 sec
+400 ensembles converted in 2.649500e+001 sec
+Modifying the global attributes
+Defining variables and their attributes
+...Defining "time"
+...Defining "time2"
+...Defining "depth"
+...Defining "lon"
+...Defining "lat"
+...Defining "u_1205"
+...Defining "v_1206"
+...Defining "w_1204"
+...Defining "Werr_1201"
+...Defining "AGC_1202"
+...Defining "PGd_1203"
+...Defining "hght_18"
+...Defining "Tx_1211"
+...Defining "P_4"
+ 
+G =
+ 
+          NetCDF_File: 'c:\working\demo\9991wh.nc'
+          nDimensions: 4
+           nVariables: 14
+    nGlobalAttributes: 47
+      RecordDimension: 'time'
+             nRecords: 0
+           Permission: 'clobber'
+           DefineMode: 'define'
+             FillMode: 'fill'
+           MaxNameLen: 0
+
+Copying data to C:\Working\Demo\9991wh.nc
+... time
+... time2
+... lat
+... lon
+... depth
+... u_1205
+... v_1206
+... w_1204
+... Werr_1201
+... AGC_1202
+... PGd_1203
+...hght_18
+... Tx_1211
+... P_4
+
+ans =
+
+C:\Working\Demo\9991wh.nc
+
+diary off

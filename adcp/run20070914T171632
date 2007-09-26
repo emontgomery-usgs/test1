@@ -1,0 +1,15 @@
+Converting RDI data file to netcdf
+ 
+rdi2cdf.m version 3.3 12-feb-2007
+rdi2cdf: cound not open 8181wall.000
+runadcp: There was a problem with the raw data
+adcp2ep is currently running
+??? Attempted to access gtD(1,1); index out of bounds because size(gtD)=[0,6].
+
+Error in ==> <a href="error:C:\home\ellyn\mtl\m_cmg\trunk\adcp_tbx\adcp2ep.m,171,1">adcp2ep at 171</a>
+start_time = datestr(datenum(gtD(1,1),gtD(1,2),gtD(1,3),gtD(1,4),gtD(1,5),gtD(1,6)),0);
+
+Error in ==> <a href="error:C:\home\ellyn\mtl\m_cmg\trunk\adcp_tbx\process_all_example.m,140,1">process_all_example at 140</a>
+    adcp2ep(settings.trimFile, settings.adcp2ep.epDataFile, ...
+
+exit

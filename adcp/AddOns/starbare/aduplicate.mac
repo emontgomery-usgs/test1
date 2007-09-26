@@ -1,0 +1,1 @@
+(*inputs: itemName - a stringnewName - a string*)tell application "Finder"	try		activate		select file itemName		select (duplicate selection)		set name of selection to newName	on error errString		return errString	end tryend tellreturn ""

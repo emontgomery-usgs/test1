@@ -1,0 +1,29 @@
+
+[BREAK Wakeup A]
+WorkHorse Broadband ADCP Version 16.21
+RD Instruments (c) 1996-2002
+All Rights Reserved.
+>ps3
+Beam Width:   3.7 degrees
+
+Beam     Elevation     Azimuth
+  1         -69.96      269.95
+  2         -70.23       89.94
+  3         -70.02        0.05
+  4         -70.10      180.05
+
+Beam Directional Matrix (Down):
+  0.3429    0.0003    0.9394    0.2394  
+ -0.3383   -0.0003    0.9411    0.2426  
+ -0.0003   -0.3419    0.9398   -0.2406  
+  0.0003    0.3405    0.9403   -0.2416  
+
+Instrument Transformation Matrix (Down):    Q14:
+  1.4736   -1.4625   -0.0029   -0.0056       24143  -23962     -47     -92  
+  0.0000    0.0027   -1.4672    1.4637           0      44  -24038   23981  
+  0.2642    0.2677    0.2653    0.2665        4328    4386    4347    4366  
+  1.0301    1.0439   -1.0350   -1.0395       16877   17104  -16958  -17031  
+Beam Angle Corrections Are Loaded.
+>cz
+
+Powering Down
