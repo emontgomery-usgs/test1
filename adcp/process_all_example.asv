@@ -122,7 +122,7 @@ if 0, % translate to netcdf, mask for basic errors and trim the data
     runadcp(settings)
 end
 %
-if 0, % apply a mask that tracks the surface - if you wish to
+if 1, % apply a mask that tracks the surface - if you wish to
     [path, name, ext] = fileparts(settings.trimFile);
     theMaskFile = fullfile(path,[name, '.msk']);
     theNewADCPFile = fullfile(path,[name, 'P.cdf']);

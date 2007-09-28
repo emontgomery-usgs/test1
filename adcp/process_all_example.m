@@ -78,7 +78,7 @@ settings.trimbins.ADCP_offset = settings.rdi2cdf.xducer_offset; % leave this alo
 % path to the TRDI surface program, if you are on a PC
 % we have permission to distribute TRDI's surface.exe with the toolbox
 % so this should be your toolbox path, Demo directory
-settings.trimbins.progPath = [mfRoot 'm_cmg\trunk\adcp_tbx\trunk\AddOns\']; % or ''
+settings.trimbins.progPath = [mfRoot 'm_cmg\trunk\adcp_tbx\AddOns\']; % or ''
 settings.adcp2ep.epDataFile = [rootName 'wh-n.nc']; % final output file name
 settings.adcp2ep.long = gatt.longitude; % decimal degrees, West = negative
 settings.adcp2ep.latit = gatt.latitude; % decimal degrees, South = negative
@@ -118,7 +118,7 @@ if 0, % run rdi2cdf separately to fix the orientation
     % the file converted here will not be overwritten
 end
 
-if 1, % translate to netcdf, mask for basic errors and trim the data
+if 0, % translate to netcdf, mask for basic errors and trim the data
     runadcp(settings)
 end
 %
@@ -130,7 +130,7 @@ if 0, % apply a mask that tracks the surface - if you wish to
         theMaskFile,theNewADCPFile)
 end
 
-if 0, % rotate from beam to earth coordinates, translate raw netCDF to EPIC
+if 1, % rotate from beam to earth coordinates, translate raw netCDF to EPIC
     [path, name, ext] = fileparts(settings.trimFile);
     theNewADCPFile = fullfile(path,[name, 'P.cdf']);
     if exist(theNewADCPFile,'file'),

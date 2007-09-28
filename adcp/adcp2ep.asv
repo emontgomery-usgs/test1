@@ -879,37 +879,43 @@ if ~isempty(B{'Hdg'}),
     disp('...Defining "Hdg_1215"')
     G{'Hdg_1215'} = ncfloat('time', 'lat', 'lon');
     G{'Hdg_1215'}.name = ncchar('Hdg');
-    G{'Hdg_1215'}.long_name = ncchar('Heading (degrees)');
-    G{'Hdg_1215'}.generic_name = ncchar('depth');
-    G{'Hdg_1215'}.units = ncchar('Pa');
+    G{'Hdg_1215'}.long_name = ncchar('INST Heading (degrees)');
+    G{'Hdg_1215'}.generic_name = ncchar('heading');
+    G{'Hdg_1215'}.units = ncchar('Deg');
     G{'Hdg_1215'}.epic_code = nclong(1215);
     G{'Hdg_1215'}.sensor_type = B.INST_TYPE(:);
     G{'Hdg_1215'}.sensor_depth = wdepth - xducer_off;
     G{'Hdg_1215'}.serial_number = nclong(serial);
-    G{'Hdg_1215'}.minimum = ncfloat(min(Hdg));
-    G{'Hdg_1215'}.maximum = ncfloat(max(Hdg));
+    G{'Hdg_1215'}.minimum = ncfloat(min(B{'Hdg'}(:)));
+    G{'Hdg_1215'}.maximum = ncfloat(max(B{'Hdg'}(:)));
     G{'Hdg_1215'}.valid_range = B{'Hdg'}.valid_range(:);
+    G{'Hdg_1215'}.heading_bias = B{'Hdg'}.heading_bias(:);
     G{'Hdg_1215'}.FillValue_ = theFillValue;
-    G{'Hdg_1215'}.NOTE = ncchar('Heading from ADCP atitude sensor');
+    if ~isempty(B{'Hdg'}.NOTE_8(:))
+           G{'Hdg_1215'}.NOTE_8 = B{'Hdg'}.NOTE_8(:);
+    end
+    if ~isempty(B{'Hdg'}.NOTE_9(:))
+           G{'Hdg_1215'}.NOTE_9 = B{'Hdg'}.NOTE_9(:);
+    end
 else
     disp('No heading data...skipping "Hdg_1215"')
 end
 if ~isempty(B{'Ptch'}),
     disp('...Defining "Ptch_1216"')
     G{'Ptch_1216'} = ncfloat('time', 'lat', 'lon');
-    G{'Ptch_1216'}.name = ncchar('P');
-    G{'Ptch_1216'}.long_name = ncchar('PRESSURE (PASCALS)');
-    G{'Ptch_1216'}.generic_name = ncchar('depth');
-    G{'Ptch_1216'}.units = ncchar('Pa');
-    G{'Ptch_1216'}.epic_code = nclong(4);
+    G{'Ptch_1216'}.name = ncchar('Ptch');
+    G{'Ptch_1216'}.long_name = ncchar('INST Pitch (degrees)');
+    G{'Ptch_1216'}.generic_name = ncchar('Pitch');
+    G{'Ptch_1216'}.units = ncchar('Deg');
+    G{'Ptch_1216'}.epic_code = nclong(1216);
     G{'Ptch_1216'}.sensor_type = B.INST_TYPE(:);
     G{'Ptch_1216'}.sensor_depth = wdepth - xducer_off;
     G{'Ptch_1216'}.serial_number = nclong(serial);
-    G{'Ptch_1216'}.minimum = ncfloat(min(Press));
-    G{'Ptch_1216'}.maximum = ncfloat(max(Press));
-    G{'Ptch_1216'}.valid_range = B{'Pressure'}.valid_range(:);
+    G{'Ptch_1216'}.minimum = ncfloat(min(B{'Ptch'}(:)));
+    G{'Ptch_1216'}.maximum = ncfloat(max(B{'Ptch'}(:)));
+    G{'Ptch_1216'}.valid_range = B{'Ptch'}.valid_range(:);
     G{'Ptch_1216'}.FillValue_ = theFillValue;
-    G{'Ptch_1216'}.NOTE = ncchar('Roll from ADCP atitude sensor');
+    G{'Ptch_1216'}.NOTE = ncchar('Ptch from ADCP atitude sensor');
 else
     disp('No Pitch data...skipping "Ptch_1216"')
 end
@@ -917,15 +923,15 @@ if ~isempty(B{'Roll'}),
     disp('...Defining "Roll_1217"')
     G{'Roll_1217'} = ncfloat('time', 'lat', 'lon');
     G{'Roll_1217'}.name = ncchar('Roll');
-    G{'Roll_1217'}.long_name = ncchar('Roll (degrees)');
+    G{'Roll_1217'}.long_name = ncchar('INST Roll (degrees)');
     G{'Roll_1217'}.generic_name = ncchar('roll');
-    G{'Roll_1217'}.units = ncchar('degrees');
-    G{'Roll_1217'}.epic_code = nclong(4);
+    G{'Roll_1217'}.units = ncchar('Deg');
+    G{'Roll_1217'}.epic_code = nclong(1217);
     G{'Roll_1217'}.sensor_type = B.INST_TYPE(:);
     G{'Roll_1217'}.sensor_depth = wdepth - xducer_off;
     G{'Roll_1217'}.serial_number = nclong(serial);
-    G{'Roll_1217'}.minimum = ncfloat(min(Roll));
-    G{'Roll_1217'}.maximum = ncfloat(max(roll));
+    G{'Roll_1217'}.minimum = ncfloat(min(B{'Roll'}(:)));
+    G{'Roll_1217'}.maximum = ncfloat(max(B{'Roll'}(:)));
     G{'Roll_1217'}.valid_range = B{'Roll'}.valid_range(:);
     G{'Roll_1217'}.FillValue_ = theFillValue;
     G{'Roll_1217'}.NOTE = ncchar('Roll from ADCP atitude sensor');
@@ -945,9 +951,9 @@ G{'time'}(1:m)= Time;
 disp('... time2')
 G{'time2'}(1:m) = Time2;
 disp('... lat')
-G{'lat'}(1) = G.latitude(:);
+G{'lat'}(1) = G.latitude(1);
 disp('... lon')
-G{'lon'}(1) = G.longitude(:);
+G{'lon'}(1) = G.longitude(1);
 disp('... depth')
 G{'depth'}(1:n) = depth;
 disp('... u_1205')
@@ -972,6 +978,19 @@ if ~isempty(B{'Pressure'}),
     disp('... P_4')
     G{'P_4'}(1:m, 1, 1) = Press;
 end
+if ~isempty(B{'Hdg'}),
+    disp('... Hdg_1215')
+     G{'Hdg_1215'}(1:m, 1, 1) = B{'Hdg'}(:);
+end
+if ~isempty(B{'Ptch'}),
+    disp('... Ptch_1216')
+    G{'Ptch_1216'}(1:m, 1, 1) = B{'Ptch'}(:);
+end
+if ~isempty(B{'Roll'}),
+    disp('... Roll_1217')
+    G{'Roll_1217'}(1:m, 1, 1) = B{'Roll'}(:);
+end
+
 
 % add minimums and maximums
 add_minmaxvalues(G);

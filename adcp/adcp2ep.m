@@ -886,13 +886,17 @@ if ~isempty(B{'Hdg'}),
     G{'Hdg_1215'}.sensor_type = B.INST_TYPE(:);
     G{'Hdg_1215'}.sensor_depth = wdepth - xducer_off;
     G{'Hdg_1215'}.serial_number = nclong(serial);
-    G{'Hdg_1215'}.minimum = ncfloat(min(Hdg));
-    G{'Hdg_1215'}.maximum = ncfloat(max(Hdg));
+    G{'Hdg_1215'}.minimum = ncfloat(min(B{'Hdg'}(:)));
+    G{'Hdg_1215'}.maximum = ncfloat(max(B{'Hdg'}(:)));
     G{'Hdg_1215'}.valid_range = B{'Hdg'}.valid_range(:);
     G{'Hdg_1215'}.heading_bias = B{'Hdg'}.heading_bias(:);
     G{'Hdg_1215'}.FillValue_ = theFillValue;
-    G{'Hdg_1215'}.NOTE7 = B{'Hdg'}.NOTE7(:);
-    G{'Hdg_1215'}.NOTE8 = B{'Hdg'}.NOTE8(:);
+    if ~isempty(B{'Hdg'}.NOTE_8(:))
+           G{'Hdg_1215'}.NOTE_8 = B{'Hdg'}.NOTE_8(:);
+    end
+    if ~isempty(B{'Hdg'}.NOTE_9(:))
+           G{'Hdg_1215'}.NOTE_9 = B{'Hdg'}.NOTE_9(:);
+    end
 else
     disp('No heading data...skipping "Hdg_1215"')
 end
@@ -907,8 +911,8 @@ if ~isempty(B{'Ptch'}),
     G{'Ptch_1216'}.sensor_type = B.INST_TYPE(:);
     G{'Ptch_1216'}.sensor_depth = wdepth - xducer_off;
     G{'Ptch_1216'}.serial_number = nclong(serial);
-    G{'Ptch_1216'}.minimum = ncfloat(min(Ptch));
-    G{'Ptch_1216'}.maximum = ncfloat(max(Ptch));
+    G{'Ptch_1216'}.minimum = ncfloat(min(B{'Ptch'}(:)));
+    G{'Ptch_1216'}.maximum = ncfloat(max(B{'Ptch'}(:)));
     G{'Ptch_1216'}.valid_range = B{'Ptch'}.valid_range(:);
     G{'Ptch_1216'}.FillValue_ = theFillValue;
     G{'Ptch_1216'}.NOTE = ncchar('Ptch from ADCP atitude sensor');
@@ -926,8 +930,8 @@ if ~isempty(B{'Roll'}),
     G{'Roll_1217'}.sensor_type = B.INST_TYPE(:);
     G{'Roll_1217'}.sensor_depth = wdepth - xducer_off;
     G{'Roll_1217'}.serial_number = nclong(serial);
-    G{'Roll_1217'}.minimum = ncfloat(min(Roll));
-    G{'Roll_1217'}.maximum = ncfloat(max(roll));
+    G{'Roll_1217'}.minimum = ncfloat(min(B{'Roll'}(:)));
+    G{'Roll_1217'}.maximum = ncfloat(max(B{'Roll'}(:)));
     G{'Roll_1217'}.valid_range = B{'Roll'}.valid_range(:);
     G{'Roll_1217'}.FillValue_ = theFillValue;
     G{'Roll_1217'}.NOTE = ncchar('Roll from ADCP atitude sensor');
@@ -947,9 +951,9 @@ G{'time'}(1:m)= Time;
 disp('... time2')
 G{'time2'}(1:m) = Time2;
 disp('... lat')
-G{'lat'}(1) = G.latitude(:);
+G{'lat'}(1) = G.latitude(1);
 disp('... lon')
-G{'lon'}(1) = G.longitude(:);
+G{'lon'}(1) = G.longitude(1);
 disp('... depth')
 G{'depth'}(1:n) = depth;
 disp('... u_1205')
@@ -974,6 +978,19 @@ if ~isempty(B{'Pressure'}),
     disp('... P_4')
     G{'P_4'}(1:m, 1, 1) = Press;
 end
+if ~isempty(B{'Hdg'}),
+    disp('... Hdg_1215')
+     G{'Hdg_1215'}(1:m, 1, 1) = B{'Hdg'}(:);
+end
+if ~isempty(B{'Ptch'}),
+    disp('... Ptch_1216')
+    G{'Ptch_1216'}(1:m, 1, 1) = B{'Ptch'}(:);
+end
+if ~isempty(B{'Roll'}),
+    disp('... Roll_1217')
+    G{'Roll_1217'}(1:m, 1, 1) = B{'Roll'}(:);
+end
+
 
 % add minimums and maximums
 add_minmaxvalues(G);
