@@ -9,15 +9,16 @@ function retn = fix_depth_meta(tripod_no, new_water_depth, cmnt)
 %         arg1= mooring number, 
 %         arg2= new water depth, 
 %         arg3 = comment describing source of new water depth 
-%  emontgomery@usgs.gov 6/7/06
+%  emontgomery@usgs.gov 10/15/07
 
+% check for arguments and exit if the right number aren't present
 if nargin ~= 3; help (mfilename); retn=0; return; end
 
   retn = 1;
   tripno=num2str(tripod_no);
-%
-%  NOTE : this only works on files in the cwd- it doesn't traverse dirs to
-%  find files to modify !!
+
+%  NOTE : this only works on files in the cwd- 
+% it doesn't traverse dirs to find files to modify !!
 if ispc
     eval(['d=dir(''*' tripno '*.nc'');'])
     for jj=1:length(d)
@@ -38,6 +39,8 @@ else              % for unix
       end
   end
 end
+
+% loop through to manipulate each file on the tripod
   for ik=1:length(fn)
      ncfilename=fn{ik};
      perloc=findstr('.',ncfilename);
@@ -57,76 +60,48 @@ end
    flg=0;
   
    % fix global attributes related to WATER_DEPTH
-   ga=att(nc);
-   for j=1:length(ga)
-     attname=name(ga{j});
-     % capitalize the attribute names in sc, mc, and pt
-     if (strcmp(attname,'inst_depth'))
-       flg=flg+1;
-     elseif (strcmp(attname,'water_depth'))
-       nc.WATER_DEPTH=nc.water_depth(:);
-       nc.water_depth=[];
-       flg=flg+1;
+    ga=att(nc);
+    for j=1:length(ga)
+      attname=name(ga{j});
+      % capitalize the attribute names in sc, mc, and pt
+      if (strcmp(attname,'inst_depth'))
+        flg=flg+1;
+      elseif (strcmp(attname,'water_depth'))
+        nc.WATER_DEPTH=nc.water_depth(:);
+        nc.water_depth=[];
+        flg=flg+1;
+      end
      end
-    end
      % this is data that doesn't have the inst_height attribute
-     if (flg ==2)  
+      if (flg ==2)  
          nc.inst_height=nc.inst_depth(:); %use a dummy to create attribute
          %so compute it from what's there
          nc.inst_height=ncfloat(nc.WATER_DEPTH-nc.inst_depth);
-     end
+      end
    
-   % NOW fix the water depth & add comments
-   water_depth_ori = nc.WATER_DEPTH(:);        % save the original value
-   nc.WATER_DEPTH=ncfloat(new_water_depth);
+   % save the original value, insert new WATER_DEPTH & add comments
+    water_depth_ori = nc.WATER_DEPTH(:);       
+    nc.WATER_DEPTH=ncfloat(new_water_depth);
     if(isempty(nc.WATER_DEPTH_NOTE))
        nc.WATER_DEPTH_NOTE = ncchar([cmnt ': (m) ']);
     else   
        nc.WATER_DEPTH_NOTE = ncchar([cmnt ': (m) ' nc.WATER_DEPTH_NOTE]);
     end
- 
+     nc.inst_height_note=ncchar('height in meters above bottom: accurate for tripod mounted intstruments');
+     nc.inst_depth_note=ncchar('inst_depth = (water_depth - inst_height); nominal depth below the surface'); 
 
-   % see if the new and old WATER_DEPTHs are the same
-     dif_wd = new_water_depth-water_depth_ori;
-     if abs(dif_wd) > .1 
-     % we're changing the contents of the variable depth here!
-     %  keep the original depth
-       nc{'depth'}.ori_water_depth=water_depth_ori;
-        dp=nc{'depth'}(:);
-        dnp=num2str(dp(1));
-       for ik=2:length(dp)
-        dnp=[dnp ', ' num2str(dp(ik))];
-       end
-       nc{'depth'}.oridepth=dnp;
-       % for data types where depth is a vector (adv, pca), 
-       % you need dodo something like
-        if (length(nc{'depth'}(:) > 1))
-         nc{'depth'}(:)= nc{'depth'}(:) + (dif_wd);
-        end
-        if (~isempty(nc.PCADPProbeHeight))
-          nc.inst_height=ncfloat(nc.PCADPProbeHeight);
-        end
-        flg=flg+1;  % increment flag so depth doesn't get fixed again
-        nc{'depth'}.CMNT=ncchar('adjusted using new water_depth- original depth data in depth.oridepth attribute');
-     end
-      % the single depths are dealt with here.
+    % some instruments have metadata with the height info -use it!
       if (~isempty(nc.ADVProbeHeight))
         nc.inst_height=ncfloat(nc.ADVProbeHeight);
-        nc{'depth'}(:)=new_water_depth - nc.inst_height;
+        %nc{'depth'}(:)=new_water_depth - nc.inst_height;
+      elseif (~isempty(nc.PCADPProbeHeight))
+         nc.inst_height=ncfloat(nc.PCADPProbeHeight);
       elseif (~isempty(nc.sensor_height))
         nc.inst_height=ncfloat(nc.sensor_height);
         nc.sensor_height=[];
-      elseif flg==2   % this is the default
-        nc{'depth'}(:)=new_water_depth - nc.inst_height;
       end
       
-     % finally make sure the min and max values agree with whatever depth
-     % is there:
-        nc{'depth'}.minimum=ncfloat(min(nc{'depth'}(:)));
-        nc{'depth'}.maximum=ncfloat(max(nc{'depth'}(:)));
-
-
-     % now try to sort out the sensor_depths
+   % now try to sort out the sensor_depths using inst_height (or similar)
      if (isempty(nc.inst_height))
          disp(['NO instrument height available in the metadata for ' ncfilename]);
          disp('please select a value to use from these options from the mooring log')
@@ -139,18 +114,12 @@ end
          else
             nc.inst_height = ncfloat(hgt);
          end
-     end
-     
-     nc.inst_height_note=ncchar('height in meters above bottom: accurate for tripod mounted intstruments');
+     end    
      nc.inst_depth=ncfloat(nc.WATER_DEPTH - nc.inst_height);
-     nc.inst_depth_note=ncchar('inst_depth = (water_depth - inst_height); nominal depth below the surface'); 
 
-   % need to deal with the variable attributes next....
-   % variable attributes
-   % nc{'T_28'}.sensor_depth=ncfloat(inst_depth);
-   
-   vn=var(nc);
-   for ik=6:length(vn)
+   % now deal with adjusting the variable attributes ...
+    vn=var(nc);
+    for ik=6:length(vn)
      if (~isempty(vn{ik}.sensor_depth(:)))
          % this part is for hydra's that may have sensors attached to it
          % at many heights- the likely sensor names are P_402?, SDP_850
@@ -160,23 +129,58 @@ end
          isSED=strncmpi(name(vn{ik}),'SED',3);
          isATTN=strncmpi(name(vn{ik}),'ATTN',4);
          istran=strncmpi(name(vn{ik}),'tran',4);
+         isCTD=strncmpi(name(vn{ik}),'CTD',3);
          isPr=strfind(name(vn{ik}),'P_');
-         if (isNEP | isSED | isATTN | istran | isPr)
-           [name(vn{ik}) ' ' num2str(nc{name(vn{ik})}.sensor_depth(:))]            
-            s_ih=water_depth_ori-  vn{ik}.sensor_depth(:)
+         if (isNEP | isSED | isATTN | istran | isCTD | isPr)
+          % use initial_sensor_height, if available
+           sh=vn{ik}.initial_sensor_height(:);
+           if (exist('sh'))
+             nc{name(vn{ik})}.sensor_depth=ncfloat(new_water_depth - sh);
+           else
+            s_ih=water_depth_ori - vn{ik}.sensor_depth(:)
              nc{name(vn{ik})}.sensor_depth=ncfloat(nc.WATER_DEPTH - s_ih);
-              [name(vn{ik}) ' ' num2str(nc{name(vn{ik})}.sensor_depth(:))]            
+              % [name(vn{ik}) ' ' num2str(nc{name(vn{ik})}.sensor_depth(:))] 
+           end
          else  % for everything else use nc.inst_height  
            nc{name(vn{ik})}.sensor_depth=ncfloat(nc.WATER_DEPTH - nc.inst_height);
          end
+      end
      end
-   end  
-close(nc)
+   
+   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   % this section changes the contents of the depth() variable
+   % {'depth'} is for the depth of the measurements
+    dif_wd = new_water_depth-water_depth_ori;
+    % are the new and old WATER_DEPTHs are the same?
+     if abs(dif_wd) > .01 
+      % we're going to change the contents of the variable depth here!
+      %  sokeep the original depth info in attributes
+       nc{'depth'}.ori_water_depth=water_depth_ori;
+        dp=nc{'depth'}(:);
+        dnp=num2str(dp(1));
+        for ik=2:length(dp)
+         dnp=[dnp ', ' num2str(dp(ik))];
+        end
+       nc{'depth'}.oridepth=dnp;
+       % Finally insert adjusted measurement depths  
+        if (length(nc{'depth'}(:)) > 1) %for vectors (adv, pca)
+            nc{'depth'}(:)= nc{'depth'}(:) + (dif_wd);
+        else    % for single depth sensors
+            nc{'depth'}(:)=new_water_depth - nc.inst_height;
+        end
+        nc{'depth'}.CMNT=ncchar('adjusted using new water_depth- original depth data in depth.oridepth attribute');
+     else       % if the depths are the same don't change stuff
+        nc{'depth'}.CMNT=ncchar('no change needed');
+     end
+    % recompute min and max of depth 
+    nc{'depth'}.minimum=ncfloat(min(nc{'depth'}(:)));
+    nc{'depth'}.maximum=ncfloat(max(nc{'depth'}(:)));
+    
+  close(nc)
   end
 
-% at the very end, verify that all the variables seem reasonable and match
+% finally, verify that all the variables seem reasonable and match
   for ik=1:length(fn)
     ncfilename=fn{ik};
     disp_ncdepth(ncfilename)
   end
-

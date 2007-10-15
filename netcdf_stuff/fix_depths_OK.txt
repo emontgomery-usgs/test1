@@ -1,0 +1,149 @@
+10/15/07
+
+Validation of fix_depth_meta operation:
+
+command used to convert:
+	fix_depth_meta(728,9.99, 'from ADV1 pressure')
+
+>> disp_ncdepth(ncfilename)		% these are the *NEW* values
+728pcvp-cal5.nc:  WATER_DEPTH: 9.99, inst_height: 1.1, inst_depth: 8.89
+u_1205 8.89
+v_1206 8.89
+w_1204 8.89
+:
+P_4023 8.36
+SDP_850 8.36
+Tx_1211 8.89
+NEP1_56 9.39
+NEP2_56 8.79
+
+nc.PCADPProbeHeight = ncdouble(1.1);  % not modified
+
+% modified or appended
+nc.WATER_DEPTH = ncfloat(9.98999977111816);
+nc.WATER_DEPTH_NOTE = ncchar(''from ADV1 pressure: (m) from Mooring Log: (m) '');
+nc.inst_height = ncfloat(1.10000002384186);
+nc.inst_height_note = ncchar(''height in meters above bottom: accurate for tripod mounted intstruments'');
+nc.inst_depth = ncfloat(8.88999938964844);
+nc.inst_depth_note = ncchar(''inst_depth = (water_depth - inst_height); nominal depth below the surface'');
+
+% the original values for depth and WATER_DEPTH are saved 
+nc{'depth'}.minimum = ncfloat(9.21218585968018);
+nc{'depth'}.maximum = ncfloat(9.97218608856201);
+nc{'depth'}.ori_water_depth = ncdouble(10.6000003814697);
+nc{'depth'}.oridepth = ncchar(''9.8222, 9.9172, 10.0122, 10.1072, 10.2022, 10.2972, 10.3922, 10.4872, 10.5822'');
+nc{'depth'}.CMNT = ncchar(''adjusted using new water_depth- original depth data in depth.oridepth attribute'');
+
+% so the original water_depth is .61M greater than the new one 
+ncload ('728pcvp-cal5.nc','depth')
+>> depth=
+    9.2122  % these are .61 less than the original depths
+    9.3072
+    9.4022
+    9.4972
+    9.5922
+    9.6872
+    9.7822
+    9.8772
+    9.9722
+
+% and the depth related metadata is re-computed for all the variables. The attribute
+%  initial_sensor_height is NOT changed !!  A subset is shown below
+
+nc{'u_1205'}.sensor_depth = ncfloat(8.88999938964844);		% 9.99-1.1 = 8.89
+nc{'u_1205'}.initial_sensor_height = ncdouble(1.1);
+
+nc{'P_4023'}.sensor_depth = ncfloat(8.35999965667725);		% 9.99-1.63 = 8.36
+nc{'P_4023'}.initial_sensor_height = ncdouble(1.62999999523163);
+
+nc{'NEP1_56'}.sensor_depth = ncfloat(9.38999938964844);		% 9.99-.6 = 9.39
+nc{'NEP1_56'}.initial_sensor_height = ncdouble(0.600000023841858);
+
+nc{'NEP2_56'}.sensor_depth = ncfloat(8.78999996185303);		%9.99-1.2 = 8.79
+nc{'NEP2_56'}.initial_sensor_height = ncdouble(1.20000004768372);
+
+
+
+Similarly, here's the output for the adv's 
+disp_ncdepth(ncfilename)
+7281advs-a.nc:  WATER_DEPTH: 9.99, inst_height: 0.48, inst_depth: 9.51
+u_1205 9.51
+v_1206 9.51
+w_1204 9.51
+:
+P_4023 8.34
+SDP_850 8.34
+Tx_1211 9.51
+
+nc.WATER_DEPTH = ncfloat(9.98999977111816);
+nc.WATER_DEPTH_NOTE = ncchar(''from ADV1 pressure: (m) '');
+nc.inst_height = ncfloat(0.479999989271164);
+nc.inst_height_note = ncchar(''height in meters above bottom: accurate for tripod mounted intstruments'');
+nc.inst_depth = ncfloat(9.51000022888184);
+nc.inst_depth_note = ncchar(''inst_depth = (water_depth - inst_height); nominal depth below the surface'');
+
+nc{'depth'}.minimum = ncfloat(9.51000022888184);
+nc{'depth'}.maximum = ncfloat(9.51000022888184);
+nc{'depth'}.ori_water_depth = ncdouble(10.6000003814697);
+nc{'depth'}.oridepth = ncchar(''10.12'');
+nc{'depth'}.CMNT = ncchar(''adjusted using new water_depth- original depth data in depth.oridepth attribute'');
+
+
+disp_ncdepth(ncfilename)
+7282advs-a.nc:  WATER_DEPTH: 9.99, inst_height: 0.48, inst_depth: 9.51
+u_1205 9.51
+v_1206 9.51
+w_1204 9.51
+:
+NEP1_56 9.69   % these all use initial_sensor_height, if available
+NEP2_56 9.09
+:
+CTDTMP_4211 8.3
+CTDCON_4218 8.3
+CTDSAL_4214 8.3
+
+All attributes are as 7281advs-a.nc- just wanted to show that it gets the CTD* depths
+right, even though the sensor_depths in the original are wrong. NOw it's right.
+nc{'CTDSAL_4214'}.sensor_depth = ncfloat(8.30000019073486);
+nc{'CTDSAL_4214'}.initial_sensor_height = ncdouble(1.69000005722046);
+
+
+////////////////////////////////////////////////////////////////////////////
+Now treat an adcp that uses it's WATER_DEPTH as the source of a changed depth:
+
+7101adc-a1h.nc:  WATER_DEPTH: 23.028, inst_height: 1.82, inst_depth: 21.208
+u_1205 21.208
+v_1206 21.208
+w_1204 21.208
+Werr_1201 21.208
+AGC_1202 21.208
+PGd_1203 21.208
+hght_18 21.208
+Tx_1211 21.208
+
+nc.WATER_DEPTH = ncfloat(23.0279998779297);
+nc.WATER_DEPTH_NOTE = ncchar(''from ADCP height: (m) '');
+nc.inst_height_note = ncchar(''height in meters above bottom: accurate for tripod mounted intstruments'');
+nc.inst_depth_note = ncchar(''inst_depth = (water_depth - inst_height); nominal depth below the surface'');
+nc.inst_height = ncfloat(1.82000005245209);
+nc.inst_depth = ncfloat(21.2080001831055);
+
+nc{'depth'}.CMNT = ncchar(''no change needed'');
+
+%% if new and old water depths are within .01 meters of each other, it doesn't change the
+   contents of {'depth'}, though the metadata fields are overwritten.
+
+
+And for a CTD on the same tripod:
+7102sc-a1h.nc:  WATER_DEPTH: 23.028, inst_height: 1, inst_depth: 22.028
+T_20 22.028
+C_51 22.028
+S_40 22.028
+STH_71 22.028
+tran_4010 22.468
+ATTN_55 22.468
+
+nc{'depth'}(:)=22.02799
+nc{'depth'}.ori_water_depth = ncdouble(23);
+nc{'depth'}.oridepth = ncchar(''22'');
+nc{'depth'}.CMNT = ncchar(''adjusted using new water_depth- original depth data in depth.oridepth attribute'');
