@@ -65,6 +65,8 @@ function epDataFile = adcp2ep(adcpFile, epDataFile, ADCPtype, dlgFile, settings)
 % http://woodshole.er.usgs.gov/
 % Please report bugs to jcote@usgs.gov
 
+% Updated 27-sep-2007 (EM) retain Hdg, Ptch, roll variables in ep file
+%   and keep depth attribute: center_first_bin
 % Updated 10-sep-2007 (MM) Remove FillValue from dimension variables time,
 % time2, depth, lat, lon
 % version 1.2

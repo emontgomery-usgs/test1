@@ -183,7 +183,7 @@ end
 
 %where is the program located
 if isempty(progPath) | ~exist(fullfile(progPath,'surface.exe'),'file')
-    disp(['RDI Surface.exe not in ' cd '.  Need to locate file.']); 
+    disp(['RDSurface.exe not in ' cd '.  Need to locate file.']); 
         [RDSurfaceFile, RDSurfacePath] = uigetfile(progPath, 'Select RDI Surface Program:');
         if ~any(RDSurfaceFile), return, end
         if RDSurfacePath(end) ~= filesep, RDSurfacePath(end+1) = filesep; end
@@ -231,7 +231,7 @@ if isunix
 	try
 		eval(['cd ' progPath])
     catch
-        disp(['RDI Surface.exe not in ' cd '.  Need to locate file.']); 
+        disp(['RDSurface.exe not in ' cd '.  Need to locate file.']); 
         [RDSurfaceFile, RDSurfacePath] = uigetfile(progPath, 'Select RDI Surface Program:');
         if ~any(RDSurfaceFile), return, end
         if RDSurfacePath(end) ~= filesep, RDSurfacePath(end+1) = filesep; end
