@@ -1265,7 +1265,7 @@ case 14
    end
    
 case 15
-   histcomment = 'Chlorophyll concentration calculated by dolly.m.';
+    histcomment = 'Chlorophyll concentration calculated by dolly.m.';
 	% Which variables should be kept?
    [nvarin,chosen] = em_dollyvar(nc,do_allvars);
       
@@ -1297,7 +1297,11 @@ case 15
       end
       if strncmp('rCv',chosen{ivar},3)
          voltsname = chosen{ivar};
-      end
+      elseif strncmp('vws',chosen{ivar},3)
+         voltsname = chosen{ivar};
+      elseif strncmp('Fvt',chosen{ivar},3)
+         voltsname = chosen{ivar};
+    end
    end
    
    %Get necessary constants.
@@ -1307,31 +1311,42 @@ case 15
 	   Cvolts = nc{voltsname}(:);
       str = get(batch);
       eval(['Chlor_id = ' str ';']);
+      str = get(batch);
+      eval(['SF = ' str ';']);
+      str = get(batch);
+      eval(['CWO = ' str ';']);
+      str = get(batch);
+      eval(['Cvarname = ' str ';']);
    else
       Chl.voltsname = voltsname;
       Chl.inst_id = nc{voltsname}.serial_number(:); 
+      Chl.SF = 17.6616;
+      Chl.Cvarname = 'CA3_937';
+      Chl.CWO = 0.07;
       Cval = Chl;
       Chl = guido(Cval,'Chlorophyll parameters');
       Cvolts = nc{Chl.voltsname}(:);
       voltsname = Chl.voltsname;
       Chlor_id = Chl.inst_id;
+      SF = Chl.SF;
+      CWO = Chl.CWO;
+      Cvarname = Chl.Cvarname;
    end
    
    %Calculate chlorophyll concentration.
-   conc = (Cvolts - 0.07)*17.6616;
+   conc = (Cvolts - CWO)*SF;
    nvarout = nvarout+1;
-   Cvarname = 'CA3_937';
-   epname{nvarout} = Cvarname;
+      epname{nvarout} = Cvarname;
    inname{nvarout} = voltsname;
-   vardesc = [ vardesc ':CA3'];
+   str = Cvarname(1:3);
+   vardesc = [ vardesc ':' str];
    eval(['newvar' num2str(nvarout) '= conc;']);
    indims = size(nc{voltsname});
    newsize{nvarout} = ['1:' num2str(ntimes) ];
    for idims = 2:length(indims)
       newsize{nvarout} = [newsize{nvarout} ',1:' num2str(indims(idims))];
    end
-   
-   
+ 
 case 16
    histcomment = 'Salinity calculated by dolly.m.';
 	% Which variables should be kept?
