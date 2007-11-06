@@ -1,0 +1,36 @@
+>>MrtlBch=archiveDirectory('/mnt/stell_ts/DATAFILES/MYRTLEBEACH',...
+    'SC coastal erosion','mrtlBch')
+>> MrtlBch(15)
+           fileList: '7261advs-a.nc'
+          startTime: 2.4529e+06
+            endTime: 2.4530e+06
+             theLat: 33.7068
+             theLon: -77.2397
+          instDepth: 7.1410
+         waterDepth: 7.5340
+           instType: {'Sontek ADV'}
+            theVars: {1x39 cell}
+           timeStep: 60.0000
+          dataTypes: {'currents'  'pressure'}
+       creationDate: '20-Sep-2007 09:13:54'
+    targetDirectory: '/mnt/stell_ts/DATAFILES/MYRTLEBEACH/'
+        numberFiles: 29
+      theExperiment: 'SC coastal erosion'
+
+>> MrtlBch(15).theVars
+  Columns 1 through 7
+    'burst'    'time'    'time2'    'depth'    'lon'    'lat'    'u_1205'
+  Columns 8 through 12
+    'v_1206'    'w_1204'    'USTD_4097'    'VSTD_4098'    'WSTD_4099'
+  Columns 13 through 17
+    'u_1205min'    'v_1206min'    'w_1204min'    'u_1205max'    'v_1206max'
+  Columns 18 through 22
+    'w_1204max'    'CS_300'    'CD_310'    'adv_nbad'    'u_dmean'
+  Columns 23 through 28
+    'v_dmean'    'w_dmean'    'u_dvar'    'v_dvar'    'w_dvar'    'P_4023'
+  Columns 29 through 33
+    'SDP_850'    'Tx_1211'    'NEP1_56'    'vrange'    'brange'
+  Columns 34 through 38
+    'Hdg_1215'    'Ptch_1216'    'Roll_1217'    'HSD_1218'    'PSD_1219'
+  Column 39
+    'RSD_1220'
