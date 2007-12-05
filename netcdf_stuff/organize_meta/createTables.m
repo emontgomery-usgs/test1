@@ -202,7 +202,7 @@ fwrite(fileID, '<th scope="col" width="64">Start<br/>Time</th>'); fprintf(fileID
 fwrite(fileID, '<th scope="col" width="64">End<br/>Time</th>'); fprintf(fileID, '\n');
 fwrite(fileID, '<th scope="col" width="67">Latitude</th>'); fprintf(fileID, '\n');
 fwrite(fileID, '<th scope="col" width="67">Longitude</th>'); fprintf(fileID, '\n');
-fwrite(fileID, '<th scope="col" width="43">Inst. Depth</th>'); fprintf(fileID, '\n');
+fwrite(fileID, '<th scope="col" width="43">Sensor<br/> Depth</th>'); fprintf(fileID, '\n');
 fwrite(fileID, '<th scope="col" width="43">Water Depth</th>'); fprintf(fileID, '\n');
 fwrite(fileID, '<th scope="col" width="80">Instrument Type</th>'); fprintf(fileID, '\n');
 fwrite(fileID, '<th scope="col" width="141">Variables</th>'); fprintf(fileID, '\n');
