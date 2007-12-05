@@ -10,6 +10,22 @@ function [taux,tauy,u10,v10]=wstress(u,v,z0)
 %       u10,v10   = equivalent wind velocity components at 10 m.
 %
 
+
+%%% START USGS BOILERPLATE -------------% Program written in Matlab v6x
+% Program works in Matlab v7.1.0 SP3
+% Program updated in Matlab 7.2.0.232 (R2006a)
+% Program ran on PC with Windows XP Professional OS.
+% program ran on Redhat Enterprise Linux 4
+%
+% "Although this program has been used by the USGS, no warranty, 
+% expressed or implied, is made by the USGS or the United States 
+% Government as to the accuracy and functioning of the program 
+% and related program material nor shall the fact of distribution 
+% constitute any such warranty, and no responsibility is assumed 
+% by the USGS in connection therewith."
+%%% END USGS BOILERPLATE --------------
+
+ 
 % Rich Signell  rsignell@usgs.gov
 %
 if(nargin==2),

@@ -73,11 +73,18 @@ if exist('varargin', 'var')
 end
 
 if exist('varargin', 'var')
-    titleInd = find(strcmp('web title', varargin));
+    titleInd = find(strcmp('web_title', varargin));
     if ~isempty(titleInd)
         webTitle = varargin{titleInd+1};
     else
         webTitle=dataArchiveStruct(1).theExperiment;
+    end
+end
+% this part may only have to be used for mbay_ltb
+if exist('varargin', 'var')
+   bidx = find(strcmp('expname', varargin));
+    if ~isempty(bidx)
+        basename = varargin{bidx+1};
     end
 end
 
@@ -125,15 +132,15 @@ end
 %Put in the file header
 for ik=1:3
     if ik==1
-      outputName=[outputNameRoot '_lp.html'];
-      subtitle=['Lowpassed Data (6 hour interval)']
+      outputName=[outputNameRoot '-lp.html'];
+      subtitle=['Lowpass filtered ed Data (6 hour interval)']
       if ~isempty(lpidx)
         ci=lpidx;
       else
         ci=0;
       end
     elseif ik==2
-      outputName=[outputNameRoot '_a1h.html'];
+      outputName=[outputNameRoot '-a1h.html'];
       subtitle=['Hourly Averaged Data']
       if ~isempty(a1hidx)
         ci=a1hidx;
@@ -141,7 +148,7 @@ for ik=1:3
         ci=0;
       end
     else
-      outputName=[outputNameRoot '_a.html'];
+      outputName=[outputNameRoot '-a.html'];
       subtitle=['Basic Sampling Interval'];
       if ~isempty(aidx)
         ci=aidx;
@@ -282,9 +289,22 @@ fwrite(fileID, '</table>'); fprintf(fileID, '\n');
 fwrite(fileID, '</div>'); fprintf(fileID, '\n');
 
 %Finish off the HTML page
+% this part assumes the names follow this convention: mbay_lt.html is the
+% main page for the experiment, and mbay_lt-a.html, and mbay_lt-a1h.html
+% are the index htmls listing the contents of the netcdf files
+%
+% but MassBay also has ltb-a and ltp-a1h which are under mbay_lt.html
 [thePath, actName, theExt] = fileparts(outputName);
 theDash = findstr('-', actName);
 actName = actName(1:theDash-1);
+ if exist('basename')
+       actName=basename;
+ else
+    if (isempty (actName))
+      actName='mainpage';
+        disp ('could not find the name of the experiment page- Fix before updating!')
+    end
+  end
 fwrite(fileID, ['<br/> <a href="' actName '.html"><strong><i>BACK TO EXPERIMENT</i></strong></a>']);
 fprintf(fileID, '\n');
 fwrite(fileID, ['<br/> <a href="mainpage.html"><strong><i>BACK TO EXPERIMENT LIST</i></strong></a>']);

@@ -4,7 +4,23 @@ function theDateNum = julian2datenum(theJulian)
 %  julian2datenum(theJulian) converts theJulian decimal
 %   day to its equivalent Matlab datenum.  The Julian
 %   day is referenced to midnight, not noon.
- 
+
+
+%%% START USGS BOILERPLATE -------------% Program written in Matlab v6x
+% Program works in Matlab v7.1.0 SP3
+% Program updated in Matlab 7.2.0.232 (R2006a)
+% Program ran on PC with Windows XP Professional OS.
+% program ran on Redhat Enterprise Linux 4
+%
+% "Although this program has been used by the USGS, no warranty, 
+% expressed or implied, is made by the USGS or the United States 
+% Government as to the accuracy and functioning of the program 
+% and related program material nor shall the fact of distribution 
+% constitute any such warranty, and no responsibility is assumed 
+% by the USGS in connection therewith."
+%%% END USGS BOILERPLATE --------------
+
+  
 % Copyright (C) 1998 Dr. Charles R. Denham, ZYDECO.
 %  All Rights Reserved.
 %   Disclosure without explicit written consent from the

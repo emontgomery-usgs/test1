@@ -9,7 +9,23 @@ function [dataArchiveStruct] = archiveDirectory(theDirectory, theExperimentName,
 %   instDepth, waterDepth, instType, theVars, timeStep (minutes), and dataTypes.
 %
 %   Program can be run in gui format (manually select a directory), by
-%   giving the m-file a directory in the command line, or via batch mode.
+
+
+%%% START USGS BOILERPLATE -------------% Program written in Matlab v6x
+% Program works in Matlab v7.1.0 SP3
+% Program updated in Matlab 7.2.0.232 (R2006a)
+% Program ran on PC with Windows XP Professional OS.
+% program ran on Redhat Enterprise Linux 4
+%
+% "Although this program has been used by the USGS, no warranty, 
+% expressed or implied, is made by the USGS or the United States 
+% Government as to the accuracy and functioning of the program 
+% and related program material nor shall the fact of distribution 
+% constitute any such warranty, and no responsibility is assumed 
+% by the USGS in connection therewith."
+%%% END USGS BOILERPLATE --------------
+
+ %   giving the m-file a directory in the command line, or via batch mode.
 
 
 %   This program is provided with no promises, warrenties, or guaranties.
@@ -33,14 +49,14 @@ function [dataArchiveStruct] = archiveDirectory(theDirectory, theExperimentName,
 %set up, it must have a name added (see below) and it must be added to the
 %cell array of variables (see below)
 Pressure = {'P_1'; 'P_4020'; 'P_4023'; 'SDP_850'};
-Temperature = {'T_20'; 'T_28'; 'temp'; 'temperature'};
+Temperature = {'T_20'; 'T_28'; 'temp'; 'temperature'; 'Tx_1211'};
 AirTemperature = {'AT_21'};
 SST = {'T_25'};
 Salinity = {'S_40';'S_41'; 'salinity'};
 Conductivity = {'C_50'; 'C_51'; 'conductivity'};
 Attenuation = {'ATTN_55'; 'TRN_107'; 'tran_4010'};
 Backscatter = {'NEP_56'};
-Oxygen = {'O_60'; 'OST_62'};
+Oxygen = {'O_60'; 'OST_62'; 'o2raw'};
 SigmaTheta = {'ST_70'; 'STH_71'; 'sigma_theta'};
 BaroPressure = {'BP_915'};
 Current = {'w_1204'; 'u_1205'; 'v_1206'; 'CS_300'; 'CD_310'; 'east'; 'north'};
@@ -49,6 +65,9 @@ SoundVel = {'SV_80'};
 Heat = {'QH_137'; 'QB_138'};
 Wind = {'WS_400'; 'WD_410'; 'WU_422'; 'WV_423'; 'TX_440'; 'TY_441'; 'Txy_448'};
 Waves = {'wp_4060'; 'wh_4061'; 'wd_4062'};
+Fluorescence = {'fvt_900';'VWS_975';'VSP_976'};
+Clorophyll = {'Fch_906'; 'VA3_935';'AC3_937';'fWS_973'};
+
 
 %Set up the variable names (can modify them here); if new variable types
 %are added above a new name needs to be inserted.
@@ -63,7 +82,7 @@ BackscatterName(1:length(Backscatter)) = {'backscatter'};
 OxygenName(1:length(Oxygen)) = {'oxygen'}; 
 SigmaThetaName(1:length(SigmaTheta)) = {'sigma theta'}; 
 BaroPressureName(1:length(BaroPressure)) = {'barometric pressure'}; 
-CurrentName(1:length(Current)) = {'current'}; 
+CurrentName(1:length(Current)) = {'currents'}; 
 SoundVelName(1:length(SoundVel)) = {'sound velocity'}; 
 HeatName(1:length(Heat)) = {'heat'}; 
 WindName(1:length(Wind)) = {'wind'}; 
@@ -139,6 +158,7 @@ dataTypes = cell(0,0);
 
 %Run through the files
 for indexFile = 1:length(theFiles)
+   if ~(strncmp(theFiles{indexFile},'._',2))
     if rem(indexFile, 10) == 0
         disp(['On file number ' num2str(indexFile) ' of ' num2str(length(theFiles))]);
     end
@@ -190,7 +210,13 @@ for indexFile = 1:length(theFiles)
         if ~isempty(theFileWaterDepth)
             waterDepth{length(waterDepth) + 1} = max(theFileWaterDepth);
         else
-            waterDepth{length(waterDepth) + 1} = NaN;
+            % see if lowercase water_depth is there
+            theFileWaterDepth = ncID.water_depth(:);
+            if ~isempty(theFileWaterDepth)
+              waterDepth{length(waterDepth) + 1} = max(theFileWaterDepth);
+            else
+              waterDepth{length(waterDepth) + 1} = NaN;
+            end
         end
         %Take care of instrument type; split based on colons/eliminate "/0"
         theFileInstType = ncID.INST_TYPE(:);
@@ -236,7 +262,12 @@ for indexFile = 1:length(theFiles)
                 theFileVarNames{length(theFileVarNames)+1} = theName;
                 foundVariable = strmatch(theName, allVariables(:,1),'exact');
                 if ~isempty(foundVariable)
-                    theFileVarTypes{length(theFileVarTypes)+1} = allVariables{foundVariable, 2};
+                    % if the contents of the variable is all NaN don't
+                    % include it on the list
+                      dd=find(isnan(ncID{theName}(:)));
+                    if (length(dd) ~= length(ncID{'time'}(:)))
+                     theFileVarTypes{length(theFileVarTypes)+1} = allVariables{foundVariable, 2};
+                    end
                 end    
             end
             if isempty(theFileVarTypes)
@@ -249,6 +280,7 @@ for indexFile = 1:length(theFiles)
         end
     end
     ncclose('all')
+   end
 end
 
 %Set up some other parameters
