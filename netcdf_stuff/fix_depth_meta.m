@@ -1,3 +1,4 @@
+
 function retn = fix_depth_meta(tripod_no, new_water_depth, cmnt)
 %
 %  function to adjust all global metadata to be consistent for one tripod
@@ -9,7 +10,12 @@ function retn = fix_depth_meta(tripod_no, new_water_depth, cmnt)
 %         arg1= mooring number, 
 %         arg2= new water depth, 
 %         arg3 = comment describing source of new water depth 
-%  emontgomery@usgs.gov 10/15/07
+%  emontgomery@usgs.gov 6/7/06
+%
+% 10/15/07 added modification of nc{'depth'} variable along with the attributes
+%
+% most recent mods allow the program to detect orientation sensors that are
+% probably at a different height than the sensors they're with
 
 % check for arguments and exit if the right number aren't present
 if nargin ~= 3; help (mfilename); retn=0; return; end
@@ -114,6 +120,8 @@ end
          else
             nc.inst_height = ncfloat(hgt);
          end
+     else
+         hgt=nc.inst_height;
      end    
      nc.inst_depth=ncfloat(nc.WATER_DEPTH - nc.inst_height);
 
@@ -121,38 +129,61 @@ end
     vn=var(nc);
     for ik=6:length(vn)
      if (~isempty(vn{ik}.sensor_depth(:)))
+        s_ih=water_depth_ori - vn{ik}.sensor_depth(:);
          % this part is for hydra's that may have sensors attached to it
          % at many heights- the likely sensor names are P_402?, SDP_850
-         % sed_??, and NEP*, so are using the names to separate... 
-         % also for ATTN_55 and tran_4010
-         isNEP=strncmpi(name(vn{ik}),'NEP',3);
-         isSED=strncmpi(name(vn{ik}),'SED',3);
+         % sed_??, and NEP*, ATTN*, tran* so are using the names to separate... 
+         isNEP=strncmpi(name(vn{ik}),'NEP',3);  % transmissometers are
+         isSED=strncmpi(name(vn{ik}),'SED',3);  % always different
          isATTN=strncmpi(name(vn{ik}),'ATTN',4);
          istran=strncmpi(name(vn{ik}),'tran',4);
          isCTD=strncmpi(name(vn{ik}),'CTD',3);
-         isPr=strfind(name(vn{ik}),'P_');
+         isPr=strncmpi(name(vn{ik}),'P_',2);
+         iscmp=strncmpi(name(vn{ik}),'comp',4);    % orientation data is usually
+         istlt=strncmpi(name(vn{ik}),'tilt',4);    % in the logger, but may
+         isptc=strncmpi(name(vn{ik}),'pitch',4);   % not be given a separate
+         isrol=strncmpi(name(vn{ik}),'roll',4);    % height
+           % strncmpi used here because it returns a true or false.
+           % strfind is [] if it fails, and the {if a|b} doesn't work as
+           % expected with []
          if (isNEP | isSED | isATTN | istran | isCTD | isPr)
           % use initial_sensor_height, if available
-           sh=vn{ik}.initial_sensor_height(:);
-           if (exist('sh'))
+          sh=vn{ik}.initial_sensor_height(:);
+           if (~isempty(sh))
              nc{name(vn{ik})}.sensor_depth=ncfloat(new_water_depth - sh);
            else
-            s_ih=water_depth_ori - vn{ik}.sensor_depth(:)
-             nc{name(vn{ik})}.sensor_depth=ncfloat(nc.WATER_DEPTH - s_ih);
+             nc{name(vn{ik})}.sensor_depth=ncfloat(nc.WATER_DEPTH - hgt);
+             nc{name(vn{ik})}.sensor_hab=ncfloat(hgt);
               % [name(vn{ik}) ' ' num2str(nc{name(vn{ik})}.sensor_depth(:))] 
            end
-         else  % for everything else use nc.inst_height  
+        % or if orientation, ask what height to put in the attribute
+        elseif (iscmp | istlt | isptc | isrol)
+             use_hgt=input(['is ' num2str(hgt) 'm the correct height_above bottom for ' name(vn{ik}) '? '],'s');
+             if strfind(lower(use_hgt),'n')
+                 ori_hgt=input('enter a new height for the orientation sensor: ');
+             else
+                 ori_hgt=hgt;
+             end
+             nc{name(vn{ik})}.sensor_depth=ncfloat(nc.WATER_DEPTH - ori_hgt);
+             nc{name(vn{ik})}.sensor_hab=ncfloat(ori_hgt);  
+        %otherwise use the unrounded instrument height
+        elseif (~isempty('s_ih'))
+             % even though there is a sensor height, it is often rounded
+             % by using the hght input, it can regain the precision lost
+           nc{name(vn{ik})}.sensor_depth=ncfloat(nc.WATER_DEPTH - hgt);
+           nc{name(vn{ik})}.sensor_hab=ncfloat(hgt);
+       else  % for everything else use nc.inst_height  
            nc{name(vn{ik})}.sensor_depth=ncfloat(nc.WATER_DEPTH - nc.inst_height);
-         end
-      end
-     end
+      end    % if
+     end     % for each variable
+    end      % for each file
    
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    % this section changes the contents of the depth() variable
    % {'depth'} is for the depth of the measurements
     dif_wd = new_water_depth-water_depth_ori;
     % are the new and old WATER_DEPTHs are the same?
-     if abs(dif_wd) > .01 
+    if abs(dif_wd) > .01 
       % we're going to change the contents of the variable depth here!
       %  sokeep the original depth info in attributes
        nc{'depth'}.ori_water_depth=water_depth_ori;
