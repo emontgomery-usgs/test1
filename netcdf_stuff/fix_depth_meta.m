@@ -4,7 +4,7 @@ function retn = fix_depth_meta(tripod_no, new_water_depth, cmnt)
 %  function to adjust all global metadata to be consistent for one tripod
 %  using a scientist supplied water_depth.  The default value should be
 %  that from the mooring log.  Adds comments
-%
+%1.01
 %   usage : retn_status = fix_depth_meta(726, 9.3, 'computed from adv pressure')
 %         where the retn_status is 1 if no problems
 %         arg1= mooring number, 
@@ -139,6 +139,9 @@ end
          istran=strncmpi(name(vn{ik}),'tran',4);
          isCTD=strncmpi(name(vn{ik}),'CTD',3);
          isPr=strncmpi(name(vn{ik}),'P_',2);
+         % not all C & T sensors are co-located...
+         isCnd=strncmpi(name(vn{ik}),'C_',2);
+         isSal=strncmpi(name(vn{ik}),'S_',2);        
          iscmp=strncmpi(name(vn{ik}),'comp',4);    % orientation data is usually
          istlt=strncmpi(name(vn{ik}),'tilt',4);    % in the logger, but may
          isptc=strncmpi(name(vn{ik}),'pitch',4);   % not be given a separate
@@ -146,9 +149,19 @@ end
            % strncmpi used here because it returns a true or false.
            % strfind is [] if it fails, and the {if a|b} doesn't work as
            % expected with []
-         if (isNEP | isSED | isATTN | istran | isCTD | isPr)
+         if (isNEP | isSED | isATTN | istran | isCTD | isPr | isCnd | isSal)
           % use initial_sensor_height, if available
           sh=vn{ik}.initial_sensor_height(:);
+           if isempty(sh)
+               sh=s_ih;
+           end
+              use_hgt=input(['is ' num2str(sh) 'm the correct height_above bottom for ' name(vn{ik}) '? '],'s');
+             if strfind(lower(use_hgt),'n')
+                 ori_hgt=input('enter a new height for the orientation sensor: ');
+             else
+                 ori_hgt=sh;
+             end
+
            if (~isempty(sh))
              nc{name(vn{ik})}.sensor_depth=ncfloat(new_water_depth - sh);
            else
