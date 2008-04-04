@@ -35,6 +35,12 @@ ntimes=tmp(1); NPoints=tmp(2); nscans=tmp(3);
 % instead of using user supplied settings,  use what's read in the header
 % fanbeam sometimes returns .6 for StepSize: we know it should be .15, thus the /4
 
+% replace ncr.fanadcp_off if there's a settings value to use
+  if settings.fanadcp_off
+    rval=settings.fanadcp_off;
+  else
+    rval=ncr.fanadcp_off(:);
+  end
 % loop through each time step
 for ik=1:ntimes
 % trim the redundant first and last ping
@@ -120,7 +126,7 @@ if exist('plottype') == 1,
     %    to map or geographic wher 0 is UP.
 %    rot = -90 + ((settings.adcp3val-360) + settings.magnetic_variation + settings.fanadcp_off);
 %    rot=0       % apply NO rotation to display raw image.
-     rot= ncr.fanadcp_off(:)+ncr.magnetic_var(:);  % should be opposite sign since matlab + angle is cartisian !
+     rot= rval+ncr.magnetic_var(:);  % should be opposite sign since matlab + angle is cartisian !
 %    convention is ccw is + from 0 at x
     if rot > 360; rot=rot-360; end
     if rot < -360; rot=rot+360; end
@@ -213,7 +219,8 @@ if exist('plottype') == 1,
 	 'units','normalized','color','y','horizontalalignment','right','fontsize',10)
      fh(:,kk)=fakeheadangle';
    clear imdata sr ha fakeheadangle xx hfill Zpad
-   case 'glacial' % this is really slow
+
+  case 'glacial' % this is really slow
     set(gcf,'name','Polar')
     set(gcf,'numbertitle','off')
     [th, r] = meshgrid(sectorswept.*(pi/180), horizrange);
@@ -247,11 +254,11 @@ end
  Zs{ik,kk}=Zi;
  % increment n for next image
   n=n+length(sectorswept)+1;
-   % let the user know where we are
-   if mod(ik,10) == 0
+end
+ % let the user know where we are
+  if mod(ik,10) == 0
         disp(['processing record ' num2str(ik) ' of ' num2str(length(ncr{'time'}))])
    end
-end
    clear Xi Yi headangle sr fakeheadangle slantrange
 end
 end
