@@ -63,7 +63,7 @@ function M=sfanmovie(fname)
  fcnt=fcnt+1;
  end
 
-   disp([num2str(fcnt) ' frames written'])
+   disp([num2str(fcnt-1) ' frames written'])
   close(ncf)
  % now do the movie stuff
     % eval(['save ' outRoot '_movie M']);
