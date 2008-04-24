@@ -10,7 +10,7 @@ function [stat,rev_no]=get_svn_rev(fname)
 %
 % emontgomery@usgs.gov
 
-rev_info= $Revision$;
+rev_info= '$Revision$';
 % all the version info is in a dir_root/.svn/all-wcprops file
 % by parsing the full path name returned by which, you can create the name
 % to get information from
