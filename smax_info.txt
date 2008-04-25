@@ -1,0 +1,41 @@
+Notes on finding the direction in the bin of speed_max
+	emontgomery 2/7/08
+
+So we start by computing direction and speed:
+   [spd,vdir]=pcoord(u_1205,v_1206); 
+
+The direction (vdir) returned by pcoord is (5180x16)
+
+Then we want to find the indices of maximum speed :
+  [val,indx]=max(spd');
+Then we want to use only those near the surface (where the bin is greater than 12 for this data)
+   gt12=find(indx > 12);
+
+
+Directions in bins 13-15 for first 7 times where max(speed) was found in a bin > 12.
+bin
+samp#   1        2          4        22        23       24        25
+13   73.1910   68.8417   84.2568  177.7910  253.6090  125.2217  133.3168
+14   65.4071   61.3573   33.1148  163.7541  161.8676  133.9517  133.6799
+15   68.0992   70.6130   72.9376  168.9538  166.8447  138.5589  148.9735
+
+The index of these bins (indx(gt12(1:7)) is [13 13 13 15 15 15 15]
+
+So the result we want for the direction at the max(speed) is:
+ time       1        2          4        22        23       24        25
+ dir.    73.1910   68.8417   84.2568  168.9538  166.8447  138.5589  148.9735
+
+
+For computing wind speed, here are the speeds in the bins nearest the surface
+for times 22-25 (where bin 15 has the max_speed)
+	12   16.1084   17.5424   16.7910   16.2553
+	13    1.4138   19.9364   18.5116   21.8635
+	14   13.1631   88.1161   82.0378   73.1705
+	15   24.0580  107.9314  102.7441   89.5382
+	16   14.9839   88.0895   55.5712   41.7431
+
+spd difference the bin containing max_speed and the one below it is 
+		  24.05-13.161, 107.9-88.11, 102.74-82.03 and 89.5-73.1
+                  -10.8949       -19.8152      -20.7063      -16.3678
+
+This is what ends up in spd_est.  Computation is OK, the result just doesn't match the real data from the NOAA buoy 44013.
