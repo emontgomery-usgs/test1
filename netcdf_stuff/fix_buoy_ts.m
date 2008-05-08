@@ -1,4 +1,5 @@
 function ndepths = fix_buoy_ts(infile)
+% FIX_BUOY_TS: converts file with Buoy format named variables to EPIC
 % fix_buoy_ts corrects the variable names, dimensions, and
 %   attributes of a netCDF file that was produced by Signell's
 %   buoy2epic.exe, to produce one or more standard EPIC netCDF
@@ -7,15 +8,21 @@ function ndepths = fix_buoy_ts(infile)
 % ndepths created data files will be created, one for each depth 
 %   coordinate in the input file.
 % If the input file is named fname.cdf (or fname.nc), the output
-%   files will have names fname_d1.nc, fname_d2.nc, etc.
+%   files will have names fname_d1.nc, fname_d2.nc, etc., depending
+%   on whether dimensioned with depth, depth002, or depth003
 % The file ep_standard.nc, a no-data netcdf file of EPIC standard
-% attributes, is required.
+% attributes, is required in the directory with the files.
 % Fran Hotchkiss  13 Apr 1999
 % Improved to impose character type on global attribute
 %   DELTA_T.  Fran Hotchkiss 1 Jul 1999.
 
 % Open ep_standard.nc (read only).
-eps = netcdf('ep_standard.nc','read');
+if exist('ep_standard.nc','file')
+    eps = netcdf('ep_standard.nc','read');
+else
+    disp ('copy ep_standard.nc into cwd and try again');
+    return
+end
 
 % Create structure to aid in matching buoy variables to epic
 %		variables.
@@ -129,12 +136,12 @@ for i = 1:ndepths
 			copy(invar,outc,0,1);
 %%%			Copy from input file.
 			invar = inc{bname{j}};
-         var = outc{epname};
-         var.sensor_depth = invar.sensor_depth(:);
-         var.serial_number = invar.serial_number(:);
-         var.minimum = invar.minimum(:);
-         var.maximum = invar.maximum(:);
-			var_list = [var_list,var.name(:),':'];
+         ovar = outc{epname};
+         ovar.sensor_depth = invar.sensor_depth(:);
+         ovar.serial_number = invar.serial_number(:);
+         ovar.minimum = invar.minimum(:);
+         ovar.maximum = invar.maximum(:);
+			var_list = [var_list,ovar.name(:),':'];
       end
    end
    j=length(var_list)-1;   

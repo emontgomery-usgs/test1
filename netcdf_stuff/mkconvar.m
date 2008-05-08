@@ -1,5 +1,9 @@
+%script mkconvar.m
+% MKCONVAR: sets up equivalent names between Old Buoy format and EPIC
+
 %script to make convar structure, which aids conversion 
-%to epic variables
+%to epic variables vrom old Buoy format data files
+% called by fix_buoy_ts.m
 
 convar(45).epicname = 'P_1';
 convar(45).buoyname = ['pre'];
@@ -197,4 +201,38 @@ convar(38).epicname = 'time2';
 convar(38).buoyname = ['tim'];
 convar(38).buoyunit = ['mil'];
 
-%last is number 49
+% at this point, last number 49
+% these are the added ones needed in variance files
+convar(50).epicname = 'UVAR_4050';
+convar(50).buoyname = ['uvariance_1, uvariance_2'];
+convar(50).buoyunit = ['cm2/s2'];
+
+convar(51).epicname = 'UVCOV_4051';
+convar(51).buoyname = ['uvcovar_1, uvcovar_2'];
+convar(51).buoyunit = ['cm2/s2'];
+
+convar(52).epicname = 'VVAR_4052';
+convar(52).buoyname = ['vvariance_1, nvariance_2'];
+convar(52).buoyunit = ['cm2/s2'];
+
+convar(53).epicname = 'UWCOV_4053';
+convar(53).buoyname = ['uwcovar_1, uwcovar_2'];
+convar(53).buoyunit = ['cm2/s2'];
+
+convar(54).epicname = 'VWCOV_4054';
+convar(54).buoyname = ['vwcovar_1, vwcovar_2'];
+convar(54).buoyunit = ['cm2/s2'];
+
+convar(55).epicname = 'WVAR_4055';
+convar(55).buoyname = ['wvariance_1, wvariance_2'];
+convar(55).buoyunit = ['cm2/s2'];
+
+convar(56).epicname = 'peru_4056';
+convar(56).buoyname = ['uperiod_1, uperiod_2'];
+convar(56).buoyunit = ['seconds'];
+
+convar(57).epicname = 'perv_4057';
+convar(57).buoyname = ['vperiod_1, vperiod_2'];
+convar(57).buoyunit = ['seconds'];
+
+
