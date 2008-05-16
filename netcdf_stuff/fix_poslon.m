@@ -8,9 +8,9 @@ function [lon_info, posidx]=find_poslon(url_dir)
 %      whether the lon attribute has the correct sign
 %   posidx is the list of indices where lon is positive (and needs changing)
 % input arguments:
-%   urldir is URL to read from (as below)
-%     urldir='http://stellwagen.er.usgs.gov/cgi-bin/nph-dods/DATAFILES/PV_SHELF/';
-%     use urldir='.'; to treat files in a local directory
+%   url_dir is URL to read from (as below)
+%     url_dir='http://stellwagen.er.usgs.gov/cgi-bin/nph-dods/DATAFILES/PV_SHELF/';
+%     use url_dir='.'; to treat files in a local directory
 
 kk=0;k=0;j=0;jk=0;  % initialize bad file counters
 posidx=[];
