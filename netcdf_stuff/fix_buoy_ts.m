@@ -20,6 +20,11 @@ function ndepths = fix_buoy_ts(infile)
 % can't use this: exist('ep_standard.nc','file') because it finds it on
 % the MATLABPATH, but it has to be in the CWD,
 nstr=ls;
+if ispc
+  nstr2=nstr';
+  nstr3=nstr2(:);
+  nstr=nstr3';
+end
 if isempty(findstr(nstr,'ep_standard.nc'))
     disp ('copy ep_standard.nc into cwd and try again');
     ndepths=0;

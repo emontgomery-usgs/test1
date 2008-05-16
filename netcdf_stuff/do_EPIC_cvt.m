@@ -14,5 +14,6 @@ fil=dir;
     % run fix_buoy_ts on them
     for jj=1:length(files)
         nd=fix_buoy_ts(files{jj});
+        if nd==0; return; end
     end
 
