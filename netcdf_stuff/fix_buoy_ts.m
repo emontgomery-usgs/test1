@@ -121,16 +121,20 @@ for i = 1:ndepths
             b3name = '   ';
             b3name(1:length(bname{j})) = bname{j};
         end
-
         bunits = v.units(1:3);
         % was 'discard' when non-epic names caused problems
         % in 2008, can mix EPIC and non-EPIC, so keep the variables as-is
-        guess = 'same'; % this name flags variables to discard.
+        guess = 'same'; % this name flags variables to keep.
         eval([qstruct '.inst_type = v.serial_number(:)']);
         for k=1:length(convar)
             if ~isempty(strmatch(b3name,convar(k).buoyname))
                 if ~isempty(strmatch(bunits,convar(k).buoyunit))
                     guess = convar(k).epicname;
+                    % vsp matchs both CS_300 & WS_400, and wdi matches
+                    % CD_310 and WD_410. implement a inst_type condition 
+                    % if Wspd and Wdirare needed. Cspd & cdir are found 
+                    % first and are usually correct
+                    break;
                 end
             end
         end
