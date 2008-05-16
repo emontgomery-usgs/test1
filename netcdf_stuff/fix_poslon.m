@@ -1,8 +1,8 @@
-function [lon_info, posidx]=find_poslon(url_dir)
-% FIND_POSLON  reads metadata and returns list of files wi. positive longitude
+function [lon_info, posidx]=fix_poslon(url_dir)
+% FIX_POSLON  reads metadata and returns list of files wi. positive longitude
 %
 % usage :
-%   [lon_info, posidx]=dir_to_ge(url_dir);
+%   [lon_info, posidx]=fix_poslon(url_dir);
 % outputs :
 %   lon_info is a structure containing the name, sign of longitude, and
 %      whether the lon attribute has the correct sign
