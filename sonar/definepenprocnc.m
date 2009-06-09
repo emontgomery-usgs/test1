@@ -41,7 +41,7 @@ nc('time') = 0; %unlimited dimension
 nc('sweep')= ncds.sweep;
 nc('x') = ncds.x;
 nc('y') = ncds.y;
-nc{'xdist'} = ncds.xdist;
+nc('xdist') = ncds.xdist;
 % add coordinate variables in all data
 nc{'time'} = nclong('time');
 nc{'time'}.units = ncchar('EPIC Julian Day');
@@ -51,7 +51,7 @@ nc{'time2'} = nclong('time') ;
 nc{'time2'}.units = ncchar('msec since 0:00 GMT');
 nc{'time2'}.type = ncchar('EVEN');
 nc{'time2'}.epic_code = ncint(624);
-% x and y are the grid values onto which the interploation is made
+% x and y are the grid values onto which the image interploation is made
 nc{'x'} = ncfloat('x') ;
 nc{'x'}.long_name = ncchar('interpolated horizontal distance from sonar');
 nc{'x'}.valid_range = ncfloat([-5 5]);
@@ -62,7 +62,8 @@ nc{'y'}.long_name = ncchar('interpolated horizontal distance from sonar');
 nc{'y'}.valid_range = ncfloat([-5 5]);
 nc{'y'}.units = ncchar('m');
 nc{'y'}.type = ncchar('EVEN');
-nc{'xdist'} = ncfloat('time','sweep','xdist');
+% xdist is the length of the "good" line that's returned
+nc{'xdist'} = ncfloat('xdist');
 nc{'xdist'}.long_name = ncchar('profile horizontal distance');
 nc{'xdist'}.units = ncchar('m');
 nc{'xdist'}.valid_range = ncfloat([0 5]);
@@ -84,17 +85,17 @@ nc{'sonar_image'}.FillValue_ = ncshort(-32767);
 nc{'sonar_image'}.scale_factor = ncfloat(10000);
 % a scale factor is applied to the variable 'sonar_image' in order to store
 % the image data as an integer rather than a float.
-nc{'brange'} = ncfloat('time','sweep','y');
+nc{'brange'} = ncfloat('time','sweep','xdist');
 nc{'brange'}.long_name = ncchar('range to bottom from sonar_image');
 nc{'brange'}.units = ncchar('m');
 nc{'brange'}.valid_range = ncfloat([0 5]);
 nc{'brange'}.FillValue_ = ncfloat(1e35);
 nc{'brange'}.scale_factor = ncfloat(1);
 %
-nc{'sstrength'} = ncshort('time','sweep','y');
+nc{'sstrength'} = ncshort('time','sweep','xdist');
 nc{'sstrength'}.long_name = ncchar('strength of reflection from sonar_image');
 nc{'sstrength'}.units = ncchar('?');
-nc{'sstrength'}.valid_range = ncshort([0 30000]);
+nc{'sstrength'}.valid_range = ncshort([0 3000]);
 nc{'sstrength'}.FillValue_ = ncshort(-32767);
-nc{'sstrength'}.scale_factor = ncfloat(10000);
+nc{'sstrength'}.scale_factor = ncfloat(100);
 nc.VAR_DESC=ncchar('x:y:xdist:sweep:sonar_image:brange:sstrength');

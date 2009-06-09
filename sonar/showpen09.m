@@ -59,43 +59,8 @@ for jj=1:nsweeps
     pcolor(intrp_dims.x,-intrp_dims.y, imi); shading flat
     % title('interpd version')
 
-    % imi is what wants to become the output sonar_image
-    % find the elevations using the max return in each bin
-    zz=max(imi);
-    for ik=1:length(zz)
-        if ~isnan(zz(ik))
-            nn=find(imi(:,ik)==zz(ik),1,'first');
-        else
-            nn=1;
-        end
-        ly(ik)=nn;
-    end
-
-    % use the contiguous middle of the plot to select the x range
-    % figure(2); plot(diff(intrp_dims.y(ly)))
-    jmps=find(abs(diff(intrp_dims.y(ly))) >.2);
-    if(jmps(end-1)-jmps(2) < range_config.*100)
-        strt_idx=1; end_idx=jmps(end);
-    else
-        strt_idx=jmps(2)+1;
-        end_idx=jmps(end-1)-1;
-    end
-    x_gd=intrp_dims.x(strt_idx:end_idx);
-    y_gd=-intrp_dims.y(ly(strt_idx:end_idx));
-    z_gd=zz(ly(strt_idx:end_idx));
-
-    %now remove everything greater than 3 std_devs of the mean
-    mn_el=mean(y_gd);
-    std_el=std(y_gd);
-    gdvals=[mn_el-(3*std_el) mn_el+(3*std_el)];
-    ng_idx=find(y_gd < gdvals(1) | y_gd > gdvals(2));
-    y_gd(ng_idx)=NaN;
-    figure
-    plot(x_gd,y_gd,'.')
-    tt=ncr{'time'}(:)+(ncr{'time2'}(:)./86400000);
-    title([datestr(gregorian(tt(idnum))) '; range setting= ' num2str(range_config)])
-    xlabel('horizontal distance along seafloor(m)')
-    ylabel('depth(m)')
+    % compute the line from the image based on highest signal strength in each bin
+    [x_gd, y_gd, z_gd]=linfrmimg(intrp_dims.x,intrp_dims.y, imi,range_config)
     % now save the values you want
     dataStruct(jj).proc_im = imi;
     dataStruct(jj).xmat = Xr;

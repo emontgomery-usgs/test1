@@ -149,7 +149,7 @@ for jj=(nimg_nums(1):nimg_nums(end))
     if Penidx==1
         ncp{'x'}(1:length(xx))=xx;
         ncp{'y'}(1:length(yy))=yy;
-        ncp{'xdist'}(1:length(rtnda1(1).intrpx))=rtnda1(1).intrpx;
+        ncp{'xdist'}(1:length(rtndat(1).intrpx))=rtndat(1).intrpx;
     end
     % Zs is float- needs to be multiplied by 10000 to store as short
     for kk=1:settings.sweep
