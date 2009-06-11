@@ -58,16 +58,9 @@ for jj=1:nsweeps
     %figure
     pcolor(intrp_dims.x,-intrp_dims.y, imi); shading flat
     % title('interpd version')
-
-    % compute the line from the image based on highest signal strength in each bin
-    [x_gd, y_gd, z_gd]=linfrmimg(intrp_dims.x,intrp_dims.y, imi,range_config)
+  
     % now save the values you want
     dataStruct(jj).proc_im = imi;
-    dataStruct(jj).xmat = Xr;
-    dataStruct(jj).ymat = Yr;
     dataStruct(jj).range_config = range_config;
     dataStruct(jj).headangle = hangj;
-    dataStruct(jj).intrpx = x_gd;
-    dataStruct(jj).intrpy = y_gd;
-    dataStruct(jj).intrpz = z_gd;
 end

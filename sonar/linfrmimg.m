@@ -19,7 +19,7 @@ zz=max(imi);
   % then get the std of each chunk
   nystd=std(nyy);
   %then find the ones with low std
-  dd_std=find(abs(diff(diff(nystd))) < 5)
+  dd_std=find(abs(diff(diff(nystd))) < 5);
   % we know the first and last are NG, so look for the first with low diff
   % in a bin greater than 5
   strt_idx=(dd_std(2)-3)*10;
@@ -27,24 +27,28 @@ zz=max(imi);
   plot(xx(strt_idx:end_idx),ly(strt_idx:end_idx))
  %
  % do we keep this the same length for each by nan-ing the ends that are bad?
+ % autonan_on allows these nan's to be converted to fillValue on write.
+ % so should end up as 1e35 in the data file.
   xdist=xx;
-  xdist(1:strt_idx-1)=1e35;
-  xdist(end_idx+1:end)=1e35;
+  xdist(1:strt_idx-1)=NaN;
+  xdist(end_idx+1:end)=NaN;
   elev=-yy(ly);
-  elev(1:strt_idx-1)=1e35;
-  elev(end_idx+1:end)=1e35;
+  elev(1:strt_idx-1)=NaN;
+  elev(end_idx+1:end)=NaN;
   sstrn=zz(ly);
-  sstrn(1:strt_idx-1)=1e35;
-  sstrn(end_idx+1:end)=1e35;
+  sstrn(1:strt_idx-1)=NaN;
+  sstrn(end_idx+1:end)=NaN;
     
     %now remove everything greater than 3 std_devs of the mean
-    mn_el=mean(elev);
-    std_el=std(elev);
+    mn_el=gmean(elev);
+    std_el=gstd(elev);
     gdvals=[mn_el-(3*std_el) mn_el+(3*std_el)];
     ng_idx=find(elev < gdvals(1) | elev > gdvals(2));
-    elev(ng_idx)=NaN; 
+    if ~isempty(ng_idx)
+     elev(ng_idx)=NaN; 
+    end
      figure
-      plot(xdist,elec,'.')
-       title([fname(end-11:end) '; range setting= ' num2str(range_config)])
+      plot(xdist,elev,'.')
+       title(['seafloor extracted from image: range setting= ' num2str(range_config)])
        xlabel('horizontal distance along seafloor(m)')
        ylabel('depth(m)')

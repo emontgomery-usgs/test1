@@ -1,7 +1,7 @@
 function ncp = do_pen_proc(metaFile, fname, img_nums)
 % do_pen_proc - Processes Imagenex pencil sonar data from the raw netCDF file.
 %   this program uses code from Imagenex to convert the raw data into an
-%   image approximating the 
+%   image approximating the
 % usage:  ncp = do_fan_rots('836procpmeta', '855tst_raw.cdf', [1:10])
 %   where:  metaFile is the name of your text file containing metadata,
 %                    surrounded by single quotes WITHOUT the file
@@ -94,18 +94,17 @@ else
     outFileRoot=fname(1:uidx-1);
     ofproc=[outFileRoot '_proc.cdf'];
 end
-% xx & yy are the arrays used for pencil image interpolation in showpen, 
+% xx & yy are the arrays used for pencil image interpolation in showpen,
 %  To be sure we all agree what they are, passing them as arguments.
-    xx=[-3.16:.0125:3.16]; 
-    yy=[.2:.0025:1.4]';
-    dim_nc.x=length(xx);
-    dim_nc.y=length(yy);
-    dim_nc.sweep=settings.sweep;
-    intrp_vec.x=xx;
-    intrp_vec.y=yy
-        % run showpen once to get the dimension of the other data
-    rtndat=showpen09(ncr,1,intrp_vec);
-    dim_nc.xdist=length(rtndat(1).intrpx);
+xx=[-3.16:.0125:3.16];
+yy=[.2:.0025:1.4]';
+dim_nc.x=length(xx);
+dim_nc.y=length(yy);
+dim_nc.sweep=settings.sweep;
+intrp_vec.x=xx;
+intrp_vec.y=yy
+% run showpen once to get the dimension of the other data
+rtndat=showpen09(ncr,1,intrp_vec);
 
 % instantiate the output ncfile
 ncp = definepenprocNc(ofproc, settings, dim_nc);
@@ -143,13 +142,12 @@ end
 for jj=(nimg_nums(1):nimg_nums(end))
     % process the images and put into output netcdf file
     if jj > 1
-       rtndat=showpen09(ncr,jj,intrp_vec);
+        rtndat=showpen09(ncr,jj,intrp_vec);
     end
     % and put what's returned in the output file and object
     if Penidx==1
         ncp{'x'}(1:length(xx))=xx;
         ncp{'y'}(1:length(yy))=yy;
-        ncp{'xdist'}(1:length(rtndat(1).intrpx))=rtndat(1).intrpx;
     end
     % Zs is float- needs to be multiplied by 10000 to store as short
     for kk=1:settings.sweep
@@ -164,29 +162,12 @@ for jj=(nimg_nums(1):nimg_nums(end))
         tmp1(lnan)=ncp{'sonar_image'}.FillValue_(:);
         %have to force it to uint16 since sonar_image is nc_short
         tmp1=uint16(tmp1);
-        ncp{'sonar_image'}(Penidx,kk,1:length(xx),1:length(yy))=tmp1;
+        ncp{'sonar_image'}(Penidx,kk,1:length(yy),1:length(xx))=tmp1;
         clear tmp1 ltx lnan
-        %the signal strength comes from the image so has the same issues
-         tmp1=rtndat(kk).intrpz;
-                 ltz=find(tmp1 <0);
-        tmp1(ltz)=ncp{'ssterngth'}.FillValue_(:);
-        % next multiply by the scale factor
-        tmp1=tmp1*100;
-        % now replace Nan's
-        lnan=find(isnan(tmp1));
-        tmp1(lnan)=ncp{'sstrength'}.FillValue_(:);
-        %have to force it to uint16 since sonar_image is nc_short
-        tmp1=uint16(tmp1);
-         ncp{'sstrength'}(Penidx,kk,1:length(tmp1))=tmp1;
-       clear tmp1 lnan ltz
-
-%        ncp{'xdist'}(Penidx,kk,1:length(rtndat(kk).intrpx))=rtndat(kk).intrpx;
-        ncp{'brange'}(Penidx,kk,1:length(rtndat(kk).intrpy))=rtndat(kk).intrpy;
     end
     Penidx=Penidx+1;
 end
 ncp{'sonar_image'}.scale_factor(:)=10000;
-ncp{'sstrength'}.scale_factor(:)=100;
 
 % this is the last we need ncr...
 close(ncr);
@@ -208,13 +189,15 @@ ncp.NOTE1 = ['To view images in Matlab type the following at the command ',...
 %  writing to netCDF doesn't work, but you get a .mat file for each pen and
 %  Pencil run
 if strcmpi(settings.SonartoAnimate,'pen'),
-    t1= ncp{'time'}(1)+ncp{'time2'}(1)./86400000;
-    ncp.start_time = datestr(gregorian(t1));
-    tt= ncp{'time'}(end)+ncp{'time2'}(end)./86400000;
-    ncp.stop_time = datestr(gregorian(tt));
-    t_all= ncp{'time'}(:)+ncp{'time2'}(:)./86400000;
+    t_all= double(ncp{'time'}(:))+(double(ncp{'time2'}(:))./86400000);
+    ncp.start_time = datestr(gregorian(t_all(1)));
+    if length(t_all)==1
+        ncp.stop_time = ncp.start_time;
+    else
+        ncp.stop_time = datestr(gregorian(t_all(end)));
+    end
     % if time data is evenly spaced
-    if length(t_all) > 1 & isempty(find(diff(diff(t_all))) ~= 0) 
+    if length(t_all) > 1 & isempty(find(diff(diff(t_all))) ~= 0)
         ncp.DELTA_T = [num2str(gmean(diff(t_all))*24*60),' sec'];
         % time and time2 are EVEN by default
     else
