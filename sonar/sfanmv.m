@@ -58,8 +58,8 @@ if waves,
    load(wname);
     julian_wave = buoy_jday;
     datenum_wave = buoydat;
-    iwaves=find(datenum_wave>=datenum_fan(isonar(1))& ...
-        datenum_wave<=datenum_fan(isonar(end)));
+    iwaves=find(datenum_wave>=floor(datenum_fan(isonar(1)))& ...
+        datenum_wave<=ceil(datenum_fan(isonar(end))));
     datenum_wave=datenum_wave(iwaves);
     Hsig=wvht(iwaves);
 end
@@ -76,6 +76,7 @@ for i=1:length(isonar)
     set(gca,'xticklabel',' ');
     set(gca,'ydir','Normal');
     colormap gray;
+    fc855rot(-90);  %overlay the tripod elements
     axis square
     set(gcf,'color','white');
     yl=ylabel('Sonar Range (m)');
@@ -110,6 +111,8 @@ for i=1:length(isonar)
         text(xt(t),-0.7,label,...
             'horizontalalignment','center','fontsize',12)
     end
+    text(0,-.2,'pencil= hexagram, fan=diamond, adcp=square, aquadop=red triangle, camera=green triangle')
+
     % stuff it into the movie matrix
     h=gcf;
     M(fcnt)=getframe(h);    % add the gcf to get the entire window

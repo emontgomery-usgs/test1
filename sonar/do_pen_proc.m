@@ -94,6 +94,14 @@ else
     outFileRoot=fname(1:uidx-1);
     ofproc=[outFileRoot '_proc.cdf'];
 end
+
+% set up how many images to process
+if nargin == 3
+    nimg_nums=img_nums;
+else
+    nimg_nums=[1:1:length(ncr{'time'})];
+end
+
 % xx & yy are the arrays used for pencil image interpolation in showpen,
 %  To be sure we all agree what they are, passing them as arguments.
 xx=[-3.16:.0125:3.16];
@@ -101,10 +109,11 @@ yy=[.2:.0025:1.4]';
 dim_nc.x=length(xx);
 dim_nc.y=length(yy);
 dim_nc.sweep=settings.sweep;
-intrp_vec.x=xx;
-intrp_vec.y=yy
+inp.x=xx;
+inp.y=yy
+inp.tilt=settings.Pencil_tilt;
 % run showpen once to get the dimension of the other data
-rtndat=showpen09(ncr,1,intrp_vec);
+rtndat=showpen09(ncr,nimg_nums(1),inp);
 
 % instantiate the output ncfile
 ncp = definepenprocNc(ofproc, settings, dim_nc);
@@ -125,12 +134,6 @@ ncp.DegPerStep=ncr.StepSize(:);
 ncp.DegPerStep(:)= ncr{'headangle'}(5)-ncr{'headangle'}(4);
 %reset creation date to now
 ncp.CREATION_DATE = ncchar(datestr(now));
-% set up how many images to process
-if nargin == 3
-    nimg_nums=img_nums;
-else
-    nimg_nums=[1:1:length(ncr{'time'})];
-end
 % do the right number of time elements
 ncp{'time'}(1:length(nimg_nums))=ncr{'time'}(nimg_nums);
 ncp{'time2'}(1:length(nimg_nums))=ncr{'time2'}(nimg_nums);
@@ -142,7 +145,7 @@ end
 for jj=(nimg_nums(1):nimg_nums(end))
     % process the images and put into output netcdf file
     if jj > 1
-        rtndat=showpen09(ncr,jj,intrp_vec);
+        rtndat=showpen09(ncr,jj,inp);
     end
     % and put what's returned in the output file and object
     if Penidx==1
@@ -177,9 +180,10 @@ hist = ncp.history(:);
 hist_new = ['Sonar processed with ' ,mfilename, ', ', rev_info, ', using Matlab ' ,...
     version, '; ',hist];
 ncp.history = hist_new;
+ncp.Pencil_tilt=settings.Pencil_tilt
 
-ncp.NOTE =['radial data interpolated onto x-y grid to make image;',...
-    'image rotated so that +y (up) is N'];
+ncp.NOTE =['angular data interpolated onto x-y grid to make image;',...
+    'image oriented so that +y is up'];
 ncp.NOTE1 = ['To view images in Matlab type the following at the command ',...
     'prompt:  nc=netdcf(''sonarxxx.nc'');',...
     'imagesc(nc{''x''}(:),nc{''y''}(:),squeeze(nc{''sonar_image''}(n,p,:,:)));',...
