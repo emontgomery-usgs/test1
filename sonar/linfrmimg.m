@@ -1,6 +1,16 @@
 function [xdist, elev, sstrn]= linfrmimg(xx, yy, imi, range_config)
 % LINFRMIMG uses the strongest return in each scan to define a line
 % approximating the seafloor
+%
+%  This is a work in progress, but is currently used to find the angle 
+%  the transducer is tilted by.
+%
+%  inputs: xx,yy, imi may be obtained from the _proc.cdf file, 
+%          imi=squeeze(nc{'sonar_image'}(1,1,:,:))
+%          range_config has been 3 for all our deployments to date
+%  outputs: xdist position along the sweep
+%	    elevation = height of the seafloor for that xdist
+%	    sstrn = value of the maximum for the elevantion
 
 zz=max(imi);
   for ik=1:length(zz)
