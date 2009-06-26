@@ -1,5 +1,5 @@
-function ncp = do_pen_proc(metaFile, fname, img_nums)
-% do_pen_proc - Processes Imagenex pencil sonar data from the raw netCDF file.
+function ncp = do_pen_proc(metaFile, fname, mk_plots, img_nums)
+% DO_PEN_PROC - Processes Imagenex pencil sonar data from the raw netCDF file.
 %   this program uses code from Imagenex to convert the raw data into an
 %   image approximating the
 % usage:  ncp = do_fan_rots('836procpmeta', '855tst_raw.cdf', [1:10])
@@ -16,6 +16,7 @@ function ncp = do_pen_proc(metaFile, fname, img_nums)
 %           fname is the netcdf file containing the raw data.  The
 %                     rootname will be used to create the name of the
 %                     processed file
+%           mk_plots is a char, indicating whether to plot or not ('y' or 'n')
 %           img_nums is the array of image indices to process
 %                     can use [1 10 25] or [132:181],
 %                     default is to process all
@@ -30,18 +31,25 @@ function ncp = do_pen_proc(metaFile, fname, img_nums)
 % Dependencies:
 %   USGS NetCDF Toolbox (C. Denham)
 %   -dap enabled mexnc doesn't work! ==> mexnc_win_2006a\mexnc.mexw32 works
-%   procpen.m (E. Montgomery)
-%   definepenprocNcFile.m  (E. Montgomery)
+%   showpen09.m (E. Montgomery)
+%   definepenprocnc.m  (E. Montgomery)
 %
 % 3/25/08 at CRS request, splitting procsonar into two parts: 1) make the
 %         raw.cdf file and 2) apply rotations and what-have-you
 %
 close all
 more off
+warning off
 
 % get the current SVN version- the value is automatically obtained in svn
 % is the file's svn.keywords is set to "Revision"
 rev_info= 'SVN $Revision: $';
+
+%displaying the plots is nice but makes a slow process even slower
+% this makes the default 'n' for no entry on the command line
+if nargin==2
+    mk_plots='n';
+end
 
 % Check for metadata file
 metaPath = pwd;
@@ -99,24 +107,25 @@ end
 if nargin == 3
     nimg_nums=img_nums;
 else
-    nimg_nums=[1:1:length(ncr{'time'})];
+    nimg_nums=1:1:length(ncr{'time'});
 end
 
 % xx & yy are the arrays used for pencil image interpolation in showpen,
 %  To be sure we all agree what they are, passing them as arguments.
-xx=[-3.16:.0125:3.16];
-yy=[.2:.0025:1.4]';
+xx=-3.16:.0125:3.16;
+yy=(.2:.0025:1.4)';
 dim_nc.x=length(xx);
 dim_nc.y=length(yy);
 dim_nc.sweep=settings.sweep;
 inp.x=xx;
-inp.y=yy
+inp.y=yy;
 inp.tilt=settings.Pencil_tilt;
+inp.mkplt=mk_plots;
 % run showpen once to get the dimension of the other data
 rtndat=showpen09(ncr,nimg_nums(1),inp);
 
 % instantiate the output ncfile
-ncp = definepenprocNc(ofproc, settings, dim_nc);
+ncp = definepenprocnc(ofproc, settings, dim_nc);
 
 % copy attributes from raw file
 rawAtts=ncnames(att(ncr));
@@ -145,30 +154,40 @@ end
 for jj=(nimg_nums(1):nimg_nums(end))
     % process the images and put into output netcdf file
     if jj > 1
+        tic
         rtndat=showpen09(ncr,jj,inp);
+        toc
     end
     % and put what's returned in the output file and object
     if Penidx==1
         ncp{'x'}(1:length(xx))=xx;
         ncp{'y'}(1:length(yy))=yy;
     end
+    
     % Zs is float- needs to be multiplied by 10000 to store as short
     for kk=1:settings.sweep
         % images may have nan's or small negative values
         tmp1=rtndat(kk).proc_im;
-        ltz=find(tmp1 <0);
+        ltz= tmp1 <0;
         tmp1(ltz)=ncp{'sonar_image'}.FillValue_(:);
         % next multiply by the scale factor
         tmp1=tmp1*1000;
         % now replace Nan's
-        lnan=find(isnan(tmp1));
+        lnan= isnan(tmp1);
         tmp1(lnan)=ncp{'sonar_image'}.FillValue_(:);
         %have to force it to uint16 since sonar_image is nc_short
         tmp1=uint16(tmp1);
         ncp{'sonar_image'}(Penidx,kk,1:length(yy),1:length(xx))=tmp1;
         clear tmp1 ltx lnan
     end
+    % save the data to the nc file every 5th sample
+    if (mod(jj,5)==0)
+        close(ncp)
+        ncp=netcdf(ofproc,'write');
+    end
+ 
     Penidx=Penidx+1;
+    disp(['Pencil sample ' num2str(Penidx-1) ' completed'])
 end
 ncp{'sonar_image'}.scale_factor(:)=10000;
 
@@ -180,7 +199,7 @@ hist = ncp.history(:);
 hist_new = ['Sonar processed with ' ,mfilename, ', ', rev_info, ', using Matlab ' ,...
     version, '; ',hist];
 ncp.history = hist_new;
-ncp.Pencil_tilt=settings.Pencil_tilt
+ncp.Pencil_tilt=settings.Pencil_tilt;
 
 ncp.NOTE =['angular data interpolated onto x-y grid to make image;',...
     'image oriented so that +y is up'];
@@ -189,7 +208,7 @@ ncp.NOTE1 = ['To view images in Matlab type the following at the command ',...
     'imagesc(nc{''x''}(:),nc{''y''}(:),squeeze(nc{''sonar_image''}(n,p,:,:)));',...
     'set(gca,''ydir'',''normal''); **where n & p are the time and sweep indexes'];
 
-% this is where the data is saved
+% this is where the summary metadata is saved
 %  writing to netCDF doesn't work, but you get a .mat file for each pen and
 %  Pencil run
 if strcmpi(settings.SonartoAnimate,'pen'),
@@ -207,7 +226,7 @@ if strcmpi(settings.SonartoAnimate,'pen'),
     else
         ncp{'time'}.type(:)='UNEVEN';
         ncp{'time2'}.type(:)='UNEVEN';
-        ncp.DELTA_T = ['? sec'];
+        ncp.DELTA_T = ('? sec');
     end
     % close the writeable version
     close(ncp);
@@ -217,7 +236,7 @@ if strcmpi(settings.SonartoAnimate,'pen'),
 end
 
 % ---------------- Subfunction: readSonarMeta.m ------------------------- %
-function userMeta = readSonarMeta(metaFile);
+function userMeta = readSonarMeta(metaFile)
 [atts, defs] = textread(metaFile,'%s %63c','commentstyle','shell');
 defs = cellstr(defs);
 for i = 1:length(atts)

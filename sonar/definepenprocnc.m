@@ -1,5 +1,5 @@
 function nc = definepenprocnc(fn, settings, ncds)
-% definepenprocnc - Set up netCDF file for processed pen sonar data
+% DEFINEPENPROCNC - Set up netCDF file for processed pen sonar data
 % nc = definepenprocnc(outFileRoot, settings, ncds);
 %
 % fn - name of the netcdf file to be created

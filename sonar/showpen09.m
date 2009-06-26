@@ -15,10 +15,10 @@ function dataStruct=showpen09(ncr, idnum, input_params)
 if nargin~=3; help MFILENAME; return; end
 
 imagedata=squeeze(ncr{'raw_image'}(idnum,:,:));
-
-npoints = ncr.DataPoints(:);
-
-range_config=ncr.Range(:);
+% pre-allocate the size of the output structure
+ dataStruct(2) = struct( 'proc_im', [], 'range_config', [], 'headangle',[]);
+ npoints = ncr.DataPoints(:);
+ range_config=ncr.Range(:);
 if isempty(range_config)
     range_config=3;     % this is the default for all pencil
 end
@@ -63,8 +63,10 @@ for jj=1:nsweeps
     % xx and input_params.y below are arbitrary numbers for getting the right general shape- they can be tweaked!
        imi=griddata(Xr,Yr,D,input_params.x,input_params.y,'linear');
     %figure
-    pcolor(input_params.x,-input_params.y, imi); shading flat
-    % title('interpd version')
+    if (strcmp(input_params.mkplt,'y'))
+     pcolor(input_params.x,-input_params.y, imi); shading flat
+     title('interpd version')
+    end
   
     % now save the values you want
     dataStruct(jj).proc_im = imi;
