@@ -9,9 +9,9 @@ function M=spemv(fname,wname,outfile_avi,start,stop)
 %    Output: AVI file 'outfile_avi' written to disk
 % Example:
 % cwd is C:\home\data\processing\Hatteras09\855NorthMinipod\855sonar\
-% fname='midfeb_855pen_proc.cdf';
-% wname='timwvht_41025';
-% output_avi='cccp_midfeb.avi';
+% fname='855pen_proc.cdf';
+% wname='timwvht_41025_all';
+% output_avi='allpen073009.avi';
 % spenmv(fname,wname,output_avi,[2009 2 7 4 56 0],[2009 2 28 0 56 0])
 
 % The output file is written with 'compression'='none' so that the images
@@ -92,7 +92,7 @@ for i=1:length(isonar)
     tt=text(.99,0.93,ts,...
         'units','normalized','color','y',...
         'horizontalalignment','right','fontsize',12);
-    title('Hatteras09 Pencil beam images')
+    title('Hatteras 2009 Pencil sonar images')
 
     axes(wave_ax);  %make the wave axis current
     hpp=plot(buoydat,wvht,'k');
@@ -126,6 +126,7 @@ end
 
 disp([num2str(fcnt-1) ' frames written'])
 close(ncf)
+hold off
 %
 % Use no compression here so we have flexibility
 % in using a greater number of AVI CODECs outside of Matlab
