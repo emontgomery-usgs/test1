@@ -12,7 +12,7 @@ function dataStruct=showpen09(ncr, idnum, input_params)
 %doing pcolor(raw_image) produces same orientation as pcolor(imagedata)
 %after read in showpwn07, so orientations match.
 
-if nargin~=3; help MFILENAME; return; end
+if nargin~=3; help Mfilename; return; end
 
 imagedata=squeeze(ncr{'raw_image'}(idnum,:,:));
 % pre-allocate the size of the output structure

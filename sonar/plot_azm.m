@@ -95,8 +95,6 @@ end
           za = cos((pi/180)*(headangle+da)).*pr;
           az = repmat(azangle,[1,1,nang]);
           % calc. x,y location for elevation data
-          %[x,y]=xycoord(ya,az);
-          % for correct assignment in images (processed post-06/09)
           [x,y]=xycoord(ya,az);
           % remove elevation data that is too high
           za(za<.75)=NaN;
@@ -117,10 +115,10 @@ end
             h1 = squeeze(headangle(i,:,:));
             x1( find(x1>1.5) )=NaN;
             y1( find(y1>1.5) )=NaN;
-            z1( find(z1>1.5) )=NaN;
-            x1( find(x1<-1.3) )=NaN;
+            z1( find(z1>1.0) )=NaN;
+            x1( find(x1<-1.5) )=NaN;
             y1( find(y1<-1.5) )=NaN;
-            z1( find(z1<-1.5) )=NaN;
+            z1( find(z1<-1.0) )=NaN;
             
             % NaN out values near tripod feet
             % this foot-detector doesn't work for hatteras data
@@ -157,7 +155,7 @@ end
             [zgbtrend,xgbs,ygbs] = gridfit(x1(ok),y1(ok),b1(ok),[-1.3:.02:1.5],[-1.5:.02:1.5],'smooth',2);
             if(1)
                figure(2); clf
-               surf(yg,xg,zg)
+               surf(xg,yg,zg)
                shading flat
                if(1)
                   hh = findobj('Type','surface');
