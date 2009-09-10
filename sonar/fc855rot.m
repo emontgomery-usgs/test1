@@ -17,92 +17,93 @@ ys=[t855.cam(2) t855.pen(2) t855.aqd(2) t855.fan(2) t855.adcp(2) t855.pen(4)];
 penx=t855.pen(3)-t855.pen(1); peny=t855.pen(4)-t855.pen(2);
 [rngs, brng_deg]=pcoord(xs, ys);
 [p1r,p1az]=pcoord(penx, peny);
-    % rngs = 0.5697    1.5187    0.9762    0.5104  0
-    % brng_deg =  168.8676  182.7173  186.4698  198.1510  0
-    % do the same for tripod feet
-    tx=[t855.gr(1) t855.bl(1) t855.rd(1)];
-    ty=[t855.gr(2) t855.bl(2) t855.rd(2)];
-    [trng, tbrng_deg]=pcoord(tx, ty);
+% rngs = 0.5697    1.5187    0.9762    0.5104  0
+% brng_deg =  168.8676  182.7173  186.4698  198.1510  0
+% do the same for tripod feet
+tx=[t855.gr(1) t855.bl(1) t855.rd(1)];
+ty=[t855.gr(2) t855.bl(2) t855.rd(2)];
+[trng, tbrng_deg]=pcoord(tx, ty);
+
+%now plot the new positions
+xoff=t855.fan(1);
+yoff=t855.fan(2);
+
+%now rotate the image, converting back to x,y from polar
+% ntx, nty ordder: greed, blue, red
+% newx, newy order: camera, pen, aqd, fan, adcp
+[newx, newy]=xycoord(rngs, brng_deg+trot);
+[newtx, newty]=xycoord(trng, tbrng_deg+trot);
+[newp1x,newp1y]=xycoord(p1r, p1az+trot);
+
+xoff=newx(4);
+yoff=newy(4);
+figno=input('what existing figure should the new coordinates go on? ')
+
+figure(figno)
+hold on
+% plot range circles from center of pencil
+
+if strfind(add_az_lines,'y')
+    % to get the line approximating pencil sweep alignment
+    % uses technique from plotrange_cdf to fo sweep positions
+    % azrotval are the radial slices,
+    % same as nc{'azangle'}
+    azrotval=[0:3:177]+trot;    % azrotval(1) should be 202
+    lx=find(azrotval>360);
+    azrotval(lx)=azrotval(lx)-360;
+    %beta are the angles downward in each sweep
+    % same as nc{'headangle'}
+    bt=[-66 -66:.3:66 66];
+    beta=repmat(bt,60,1);
+    beta = beta.*(pi/180); % convert to radians
+    hgt=1.06;       % from nc.Height
     
-    %now plot the new positions
-    xoff=t855.fan(1);
-    yoff=t855.fan(2);
-        
-    %now rotate the image, converting back to x,y from polar
-    % ntx, nty ordder: greed, blue, red
-    % newx, newy order: camera, pen, aqd, fan, adcp
-    [newx, newy]=xycoord(rngs, brng_deg+trot);
-    [newtx, newty]=xycoord(trng, tbrng_deg+trot);
-    [newp1x,newp1y]=xycoord(p1r, p1az+trot);
-    
-    xoff=newx(4);
-    yoff=newy(4);
-    figno=input('what existing figure should the new coordinates go on? ')
-    
-    figure(figno)
-    hold on
-    % plot range circles from center of pencil
-    for icirc = 1:2,
-        h = circle(icirc,newx(2)-xoff,newy(2)-yoff);
-        set(h,'color','r');
-    end
-    if strfind(add_az_lines,'y')
-        % to get the line approximating pencil sweep alignment
-        % this is not cleverly done and must be adjusted after the rest looks
-        % right
-        pen_adcp_off=brng_deg(2)-brng_deg(5)+trot;
-        
-        azrotval=[0:3:177]+pen_adcp_off;    % azrotval(1) should be 202
-        lx=find(azrotval>360);
-        azrotval(lx)=azrotval(lx)-360;
-        % the next two obtain the x and y positions under the head for each
-        % angle.  The result is on a unit circle, which we can use as 1m
-        nypos=cosd(azrotval);
-        nxpos=sind(azrotval);
-        
-        for ik=1:length(azrotval)
-            if ik ==1
-                col1='g';
-                col2='c'
-            elseif ik ==60
-                col1='r';
-                col2='m'
-            else
-                col1='y'; col2=col1;
-            end
-            % if we say the offset from the axis of rotation to under the
-            % center of the head is 10 cm, a factor of .1 is needed.  if 5 cm,
-            % use .05
-            h1=arrow([newx(2)-xoff+(.05*nxpos(ik))],[newy(2)-yoff+(.05*nypos(ik))],1.5,+90+azrotval(ik));
-            h2=arrow([newx(2)-xoff+(.05*nxpos(ik))],[newy(2)-yoff+(.05*nypos(ik))],1.5,-90+azrotval(ik));
-            set(h1,'color',col1)
-            set(h2,'color',col2)
+    Ro = 0.05; %meters, pencil sweep apex offset from azimuth centerline of rotation
+    m = hgt.*tan(beta); % horizontal distance from sweep apex to measurement M
+    alpha = azrotval; % the azimuth rotation angle, [nAz] positions, on x-y plane
+    alpha = alpha.*(pi/180); % convert to radians
+    gamma = atan(m./Ro); % angle between points A and M
+    for iAz=1:2:60
+        x(iAz,:) = sqrt(m(iAz,:).^2+Ro.^2).*sin(gamma(iAz,:)+alpha(iAz));
+        y(iAz,:) = sqrt(m(iAz,:).^2+Ro.^2).*cos(gamma(iAz,:)+alpha(iAz));
+        x1=x(iAz,:)+newx(2)-xoff;
+        y1=y(iAz,:)+newy(2)-yoff;
+        if iAz==1
+        plot([x1(1) x1(end)],[y1(1) y1(end)],'g')
+        else
+        plot([x1(1) x1(end)],[y1(1) y1(end)],'y')
         end
     end
-   % add the tripod stuff over the azimuth lines
-    plot(newtx(2)-xoff,newty(2)-yoff,'bo','MarkerSize',10);
-    plot(newtx(2)-xoff,newty(2)-yoff,'bo','MarkerSize',12);
-    plot(newtx(1)-xoff,newty(1)-yoff,'go','MarkerSize',12);
-    plot(newtx(3)-xoff,newty(3)-yoff,'ro','MarkerSize',12);
-    plot(newtx(1)-xoff,newty(1)-yoff,'go','MarkerSize',10);
-    plot(newtx(3)-xoff,newty(3)-yoff,'ro','MarkerSize',10);
-    plot([newtx(2)-xoff newtx(3)-xoff newtx(1)-xoff newtx(2)-xoff],...
+    % add offset to pencil center to the x,y positions
+end
+for icirc = 1:2,
+    h = circle(icirc,newx(2)-xoff,newy(2)-yoff);
+    set(h,'color','r');
+end
+% add the tripod stuff over the azimuth lines
+plot(newtx(2)-xoff,newty(2)-yoff,'bo','MarkerSize',10);
+plot(newtx(2)-xoff,newty(2)-yoff,'bo','MarkerSize',12);
+plot(newtx(1)-xoff,newty(1)-yoff,'go','MarkerSize',12);
+plot(newtx(3)-xoff,newty(3)-yoff,'ro','MarkerSize',12);
+plot(newtx(1)-xoff,newty(1)-yoff,'go','MarkerSize',10);
+plot(newtx(3)-xoff,newty(3)-yoff,'ro','MarkerSize',10);
+plot([newtx(2)-xoff newtx(3)-xoff newtx(1)-xoff newtx(2)-xoff],...
     [newty(2)-yoff newty(3)-yoff newty(1)-yoff newty(2)-yoff],'k--')
-    % now do the insturmens
-    plot(newx(5)-xoff,newy(5)-yoff,'ks','MarkerFaceColor','k');
-    % fanbeam
-    plot(newx(4)-xoff,newy(4)-yoff,'md','MarkerFaceColor','m');
-    %fanrad=rsmak('circle',5,[xoff yoff]);
-    %fnplt(fanrad,'m');
-    %pencil
-    plot(newx(2)-xoff,newy(2)-yoff,'ch','MarkerFaceColor','c');
-    % add 1 meter radius circles around the pencil beam
-     %pencilrad=rsmak('circle',3,[t855.pen(1) t855.pen(2)]);
-    %fnplt(pencilrad,'y')
-    % camera
-    plot(newx(1)-xoff,newy(1)-yoff,'r^','MarkerFaceColor','r');
-    % aquadop
-    plot(newx(3)-xoff,newy(3)-yoff,'g^','MarkerFaceColor','g');
-    %gtext('pencil= hexagram, fan=diamond, adcp=square, aquadop=red triangle, camera=green triangle')
-    hold off
-    
+% now do the insturmens
+plot(newx(5)-xoff,newy(5)-yoff,'ks','MarkerFaceColor','k');
+% fanbeam
+plot(newx(4)-xoff,newy(4)-yoff,'md','MarkerFaceColor','m');
+%fanrad=rsmak('circle',5,[xoff yoff]);
+%fnplt(fanrad,'m');
+%pencil
+plot(newx(2)-xoff,newy(2)-yoff,'ch','MarkerFaceColor','c');
+% add 1 meter radius circles around the pencil beam
+%pencilrad=rsmak('circle',3,[t855.pen(1) t855.pen(2)]);
+%fnplt(pencilrad,'y')
+% camera
+plot(newx(1)-xoff,newy(1)-yoff,'r^','MarkerFaceColor','r');
+% aquadop
+plot(newx(3)-xoff,newy(3)-yoff,'g^','MarkerFaceColor','g');
+%gtext('pencil= hexagram, fan=diamond, adcp=square, aquadop=red triangle, camera=green triangle')
+hold off
+
