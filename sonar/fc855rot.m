@@ -76,7 +76,7 @@ if strfind(add_az_lines,'y')
     end
     % add offset to pencil center to the x,y positions
 end
-for icirc = 1:2,
+for icirc = 1:3,
     h = circle(icirc,newx(2)-xoff,newy(2)-yoff);
     set(h,'color','r');
 end
