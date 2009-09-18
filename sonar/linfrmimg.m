@@ -22,6 +22,17 @@ zz=max(imi);
   ly(ik)=nn;
   end
   
+% alternate method trying to get the first part of the peak 
+for jj=1:length(zz)
+    first_hi_val=find(diff(imi(50:end,jj) > 5),1,'first');
+    if (isempty(first_hi_val))
+        newly(jj)=1;
+    else
+        newly(jj)=first_hi_val+50;
+    end
+end
+    
+  
 % use the contiguous middle of the plot to select the x range
   % figure(2); plot(diff(yy(ly)))
   % divede the data into 10 point chunks
@@ -34,7 +45,7 @@ zz=max(imi);
   % in a bin greater than 5
   strt_idx=(dd_std(2)-3)*10;
   end_idx=(dd_std(end)+2)*10;
-  plot(xx(strt_idx:end_idx),ly(strt_idx:end_idx))
+   % plot(xx(strt_idx:end_idx),ly(strt_idx:end_idx))
  %
  % do we keep this the same length for each by nan-ing the ends that are bad?
  % autonan_on allows these nan's to be converted to fillValue on write.
@@ -42,23 +53,30 @@ zz=max(imi);
   xdist=xx;
   xdist(1:strt_idx-1)=NaN;
   xdist(end_idx+1:end)=NaN;
-  elev=-yy(ly);
+  %elev=-yy(ly);
+  elev=-yy(newly);
   elev(1:strt_idx-1)=NaN;
   elev(end_idx+1:end)=NaN;
-  sstrn=zz(ly);
+  %sstrn=zz(ly);
+  sstrn=zz(newly);
   sstrn(1:strt_idx-1)=NaN;
   sstrn(end_idx+1:end)=NaN;
     
     %now remove everything greater than 3 std_devs of the mean
-    mn_el=gmean(elev);
+    %mn_el=gmean(elev);
     std_el=gstd(elev);
-    gdvals=[mn_el-(3*std_el) mn_el+(3*std_el)];
+    med_el=gmedian(elev);
+    %gdvals=[mn_el-(std_el) mn_el+(std_el)];
+    gdvals=[med_el-(1.5*std_el) med_el+(1.5*std_el)];
+
     ng_idx=find(elev < gdvals(1) | elev > gdvals(2));
     if ~isempty(ng_idx)
      elev(ng_idx)=NaN; 
     end
-     figure
-      plot(xdist,elev,'.')
+     %figure
+      hold on  %overplot on original
+      plot(xdist,elev,'r.')
        title(['seafloor extracted from image: range setting= ' num2str(range_config)])
        xlabel('horizontal distance along seafloor(m)')
        ylabel('depth(m)')
+       hold off
