@@ -3,14 +3,15 @@ function [x, y, elev, sstr]= linfrm_rawimg(ncr, settings)
 % define a line approximating the seafloor
 %  inputs: the open netdcf object for the raw file and settings
 % settings is a structure and must contain 3 things:
-%   1) tidx- the time index of the first dimension of ncr (1-4_
-%   2) thold- threshold of size of (diff) to use in peak detection
-%   3) rot2compass- value needed to get up as North in the plot
-% autonan must be on before ncr was opened
+%   1) tidx- the time index of the first dimension of ncr (1-4)
+%   2) thold- threshold of size of (diff) to use in peak detection (5-15)
+%   3) rot2compass- value needed to get up as North in the plot (20 for
+%   Hatteras09)
+% autonan must be on before ncr is opened
 %
-%  outputs: xdist position along the sweep
-%	    elevation = height of the seafloor for that xdist
-%	    sstrn = value of the maximum for the elevantion
+%  outputs: x - x position along the sweep, y - y position along the sweep
+%	    elev = height of the seafloor for each position
+%	    sstr = value of the maximum for the elevantion
 %
 %  This is a work in progress aimed at resolving ripples
 % emontgomery@usgs.gov   Sept.21, 2009
@@ -45,7 +46,6 @@ hdangle=ncr{'headangle'}(tidx,:,:);
 meters_per_point=1/(szs(3)/ncr.Range(:));
   alpha = ncr{'azangle'}(tidx,:)+settings.rot2compass; % the azimuth rotation angle, [nAz] positions, on x-y plane
   alpha = alpha.*(pi/180); % convert to radians
-
 %
 % pre-allocate
 x=ones(szs(2),szs(4)-1); y=ones(szs(2),szs(4)-1); elev=ones(szs(2),szs(4)-1); sstr=ones(szs(2),szs(4)-1);
@@ -58,10 +58,11 @@ for jj=1:szs(4)-1
     maxval=max(ncr{'raw_image'}(tidx,iAz,50:end,jj));
     if (isempty(first_hi_val))
         scan_surfval(jj)=1;
-        sstr(iAz,jj)=1;
+        sstr(iAz,jj)=max(ncr{'raw_image'}(tidx,iAz,50:end,jj));
     else
         scan_surfval(jj)=first_hi_val+50;
-        sstr(iAz,jj)=maxval;
+        sstr(iAz,jj)=ncr{'raw_image'}(tidx,iAz,first_hi_val+50,jj);
+        
     end
 end
   if iAz==1
