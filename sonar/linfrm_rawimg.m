@@ -65,10 +65,12 @@ for jj=1:szs(4)-1
         
     end
 end
+  % compute height from transducer only on the first rotation; use for all
   if iAz==1
     minidx=szs(4)/2-5; maxidx=szs(4)/2+5;
     A=median(scan_surfval(minidx:maxidx))*meters_per_point; 
   end
+  % do the trig to get x, y, z
   hdang=hdangle(iAz,1:szs(4)-1);
   beta = hdang.*(pi/180); % convert to radians
   m = A.*tan(beta); % horizontal distance from sweep apex to measurement M
@@ -80,7 +82,7 @@ end
   %plot(x(iAz,:), -elev(iAz,:))
   clear scan_surfval beta gamma hdang
 
-  %now remove everything greater than 3 std_devs of the mean
+  %now remove everything greater than 2 std_devs of the median
     %mn_el=gmean(elev);
     std_el=gstd(elev(iAz,:));
     med_el=gmedian(elev(iAz,:));
@@ -100,7 +102,7 @@ end
    %    axis ([-2.5 2.5 -.9 -.5])
    %    hold off
 end      
-       % this is how to use the maximum of each scan after interpolation onto
+% this is how to use the maximum of each scan after interpolation onto
 % cartesian. I don't think this is as good as selecting the beginning of the upswing
 % 
 %zz=max(imi);  % imi from plotrange_cdf, plottype=3d_frm_img                     
