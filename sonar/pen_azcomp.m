@@ -79,8 +79,10 @@ loc=find(td >aztar_date,1,'first')
 if isempty(loc)
     loc=4;
 else
-    if (abs(aztar_date-td(loc-1)) < abs(aztar_date-td(loc)))
-        loc=loc-1;
+    if loc>1
+        if (abs(aztar_date-td(loc-1)) < abs(aztar_date-td(loc)))
+            loc=loc-1;
+        end
     end
 end
 settings.tidx=loc
@@ -95,7 +97,7 @@ azline.x=x;
 azline.y=y;
 azline.elev=elev;
 azline.sstr=sstr;
-azline.sample_time=datestr(target_date+td(loc));
+azline.sample_time=datestr(floor(target_date)+td(loc));
 
 %now do a plot comparing them- pencil first
 [rp,azp]=pcoord(px,py);  % returns r as all positive
