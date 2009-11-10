@@ -1,17 +1,15 @@
-function ncp = do_pen_proc(metaFile, fname, mk_plots, img_nums)
+function ncp = do_pen_proc(settings, fname, mk_plots, img_nums)
 % DO_PEN_PROC - Processes Imagenex pencil sonar data from the raw netCDF file.
 %   this program uses code from Imagenex to convert the raw data into an
 %   image approximating the
 % usage:  ncp = do_fan_rots('836procpmeta', '855tst_raw.cdf', [1:10])
-%   where:  metaFile is the name of your text file containing metadata,
-%                    surrounded by single quotes WITHOUT the file
-%                    extension .txt. An example metadata file,
-%                    procfanexample.txt, is provided in this package of
-%                    mfiles.
-%                    ** currently assumes fan and pencil are processed
-%                       as separate steps
-%                   The file name is derived from the raw, unless
-%                   a new onameRoot is supplied in the metaFile.
+%   where:  procmeta is the name of your structure containing metadata
+%                     expects to be called from a script that sets them up.
+%                     procMeta.SonartoAnimate='pen';
+%                     procMeta.adcp3val=0.0;
+%                     procMeta.fanadcp_off=0;
+%                     procMeta.Pencil_tilt=0.0;
+%                     procMeta.dxy=0.005;
 %
 %           fname is the netcdf file containing the raw data.  The
 %                     rootname will be used to create the name of the
@@ -51,28 +49,30 @@ if nargin==2
     mk_plots='n';
 end
 
-% Check for metadata file
-metaPath = pwd;
-meta = dir([metaFile,'.txt']);
-if isempty(meta)
-    fprintf('\n')
-    fprintf('The metadata file %s.txt does not exist in this directory\n',metaFile)
-    metaPath = input('Please enter the full path to the directory with your metadata file:  ','s');
-    meta = dir(fullfile(metaPath,[metaFile,'.txt']));
+oldversion=0; %comment out the following section
+if oldversion
+    % Check for metadata file
+    metaPath = pwd;
+    meta = dir([metaFile,'.txt']);
     if isempty(meta)
-        error(['Still cannot find this metadata file ', fullfile(metaPath,[metaFile,'.txt'])])
+        fprintf('\n')
+        fprintf('The metadata file %s.txt does not exist in this directory\n',metaFile)
+        metaPath = input('Please enter the full path to the directory with your metadata file:  ','s');
+        meta = dir(fullfile(metaPath,[metaFile,'.txt']));
+        if isempty(meta)
+            error(['Still cannot find this metadata file ', fullfile(metaPath,[metaFile,'.txt'])])
+        end
     end
+    metaFile = fullfile(metaPath,meta.name);
+    
+    % Get user's metadata structure
+    settings = readSonarMeta(metaFile);
 end
-metaFile = fullfile(metaPath,meta.name);
-
-% Get user's metadata structure
-settings = readSonarMeta(metaFile);
-
 % Check that the metadata contains required fields.
 reqFields = {'SonartoAnimate','sweep'};
 for f = 1:length(reqFields)
     if ~isfield(settings,reqFields{f})
-        disp(['The field ''',reqFields{f},''' is not specified in ',metaFile,'.txt'])
+        disp(['The field ''',reqFields{f},''' is not specified in settings'])
         missingFields(f) = 1;
     else
         missingFields(f) = 0;
@@ -104,11 +104,12 @@ else
 end
 
 % set up how many images to process
-if nargin == 3
+if nargin > 3
     nimg_nums=img_nums;
 else
     nimg_nums=1:1:length(ncr{'time'});
 end
+
 
 % xx & yy are the arrays used for pencil image interpolation in showpen,
 %  To be sure we all agree what they are, passing them as arguments.
@@ -185,7 +186,7 @@ for jj=(nimg_nums(1):nimg_nums(end))
         close(ncp)
         ncp=netcdf(ofproc,'write');
     end
- 
+    
     Penidx=Penidx+1;
     disp(['Pencil sample ' num2str(Penidx-1) ' completed'])
 end

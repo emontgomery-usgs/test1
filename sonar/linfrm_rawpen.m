@@ -1,16 +1,18 @@
-function [x, y, elev, sstr]= linfrm_rawpen(ncp, settings)
+function [x, y, elev, sstr]= linfrm_rawpen(ncr, settings)
 % LINFR_RAWPEN uses the first increasing return in each angular scan to
 % define a line approximating the seafloor
 %  inputs: the open netdcf object for the raw file and settings
 % settings is a structure and should contain these things:
-%   1) tidx- the time index of the first dimension of ncp (72 is 1/28 at 0715)
+%   1) tidx- the time index of the first dimension of ncr (72 is 1/28 at 0715)
 %   2) thold- threshold of size of (diff) to use in peak detection (5-15)
 %      if data retruned is noisy- try a higher threshold
 %   3) rot2compass- value needed to get up as North in the plot (0)
 %   4) Pencil_tilt- value needed to adjust first and last scans to balance(0)
 %   5) nsweeps - number of sweeps (1)
 %   6) detrend - true if you want to try the detrending - experimental
-% autonan must be on before ncp was opened
+%   7) blank_points - number of points to skip at beginning of each sample
+%   (> 50)- low signal may need to push this value to ~100
+% autonan must be on before ncr was opened
 %
 %  outputs: x,y = positions along the sweep
 %	    elev = height of the seafloor for that xdist
@@ -50,19 +52,23 @@ if isfield(settings,'detrend')
 else
     detrend=0;      % default is don't detrend
 end
-
+if isfield(settings,'blank_points')
+    blank=settings.blank_points;
+else
+    blank=50;      % default is don't detrend
+end
 %contains: (time, number_rotations, npoints, nscans)
-szs = ncsize(ncp{'raw_image'});
+szs = ncsize(ncr{'raw_image'});
 %
 %Note the last headangle and data point is NG, so that dimension needs to be -1
 
 % alternate method trying to get the first part of the peak
 %for hh=1:szs(2)
 %contains: (time, number_rotations, npoints, nscans)
-szs = ncsize(ncp{'raw_image'});
+szs = ncsize(ncr{'raw_image'});
 Ro=0.0; % distance (m) from axis of rotation to head
-hdangle=ncp{'headangle'}(:)+ tilt;
-meters_per_point=1/(szs(2)/ncp.Range(:));
+hdangle=ncr{'headangle'}(:)+ tilt;
+meters_per_point=1/(szs(2)/ncr.Range(:));
 alpha = settings.rot2compass; % use how much to rotate
 alpha = alpha.*(pi/180); % convert to radians
 
@@ -90,14 +96,20 @@ for iAz=1:nsweeps
     end
     for jj=scan_nos
         % Note the last headangle and data point is NG, so that dimension needs to be -1
-        first_hi_val=find(diff(ncp{'raw_image'}(tidx,50:end,jj) > thold),1,'first');
-        maxval=max(ncp{'raw_image'}(tidx,iAz,50:end,jj));
+        first_hi_val=find(diff(ncr{'raw_image'}(tidx,blank:end,jj) > thold),1,'first');
+        nn=1;       %set counter for cahnging the threshold, in case it's needed
+        while( first_hi_val+blank > 350)
+            temp_thold=thold-nn;
+            first_hi_val=find(diff(ncr{'raw_image'}(tidx,blank:end,jj) > temp_thold),1,'first');
+            nn=nn+1;
+        end   
+        maxval=max(ncr{'raw_image'}(tidx,iAz,blank:end,jj));
         if (isempty(first_hi_val))
             scan_surfval(jj)=1;
             sstr(knt,jj)=1;
         else
-            scan_surfval(jj)=first_hi_val+50;
-            sstr(knt,jj)=ncp{'raw_image'}(tidx,iAz,first_hi_val+50,jj);
+            scan_surfval(jj)=first_hi_val+blank;
+            sstr(knt,jj)=ncr{'raw_image'}(tidx,iAz,first_hi_val+blank,jj);
         end
     end
     if iAz==1
