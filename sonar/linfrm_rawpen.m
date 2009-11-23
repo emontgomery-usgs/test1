@@ -103,13 +103,13 @@ for iAz=1:nsweeps
             first_hi_val=find(diff(ncr{'raw_image'}(tidx,blank:end,jj) > temp_thold),1,'first');
             nn=nn+1;
         end   
-        maxval=max(ncr{'raw_image'}(tidx,iAz,blank:end,jj));
+        maxval=max(ncr{'raw_image'}(tidx,blank:end-1,jj));
         if (isempty(first_hi_val))
             scan_surfval(jj)=1;
             sstr(knt,jj)=1;
         else
             scan_surfval(jj)=first_hi_val+blank;
-            sstr(knt,jj)=ncr{'raw_image'}(tidx,iAz,first_hi_val+blank,jj);
+            sstr(knt,jj)=ncr{'raw_image'}(tidx,first_hi_val+blank,jj);
         end
     end
     if iAz==1

@@ -7,6 +7,9 @@ function [x, y, elev, sstr]= linfrm_rawimg(ncr, settings)
 %   2) thold- threshold of size of (diff) to use in peak detection
 %   3) rot2compass- value needed to get up as North in the plot
 %   4) Pencil_tilt- value needed to adjust first and last scans to =
+%   5) detrend - true if you want to try the detrending - experimental
+%   6) blank_points - number of points to skip at beginning of each sample
+%   (> 50)- low signal may need to push this value to ~100
 % autonan must be on before ncr was opened
 %
 %  outputs: x,y = positions along the sweep
@@ -37,6 +40,11 @@ if isfield(settings,'Pencil_tilt')
 else
     tilt=0;
 end
+if isfield(settings,'blank_points')
+    blank=settings.blank_points;
+else
+    blank=50;      % default is don't detrend
+end
 
 %contains: (time, number_rotations, npoints, nscans)
  szs = ncsize(ncr{'raw_image'});
@@ -61,15 +69,21 @@ x=ones(szs(2),szs(4)-1); y=ones(szs(2),szs(4)-1); elev=ones(szs(2),szs(4)-1); ss
 for iAz=1:szs(2)
 for jj=1:szs(4)-1
     % Note the last headangle and data point is NG, so that dimension needs to be -1
-    first_hi_val=find(diff(ncr{'raw_image'}(tidx,iAz,50:end,jj) > thold),1,'first');
-    maxval=max(ncr{'raw_image'}(tidx,iAz,50:end,jj));
-    if (isempty(first_hi_val))
-        scan_surfval(jj)=1;
-        sstr(iAz,jj)=1;
-    else
-        scan_surfval(jj)=first_hi_val+50;
-        sstr(iAz,jj)=ncr{'raw_image'}(tidx,iAz,first_hi_val+50,jj);
-    end
+        first_hi_val=find(diff(ncr{'raw_image'}(tidx,iAz,blank:end,jj) > thold),1,'first');
+        nn=1;       %set counter for cahnging the threshold, in case it's needed
+        while( first_hi_val+blank > 350)
+            temp_thold=thold-nn;
+            first_hi_val=find(diff(ncr{'raw_image'}(tidx,iAz,blank:end,jj) > temp_thold),1,'first');
+            nn=nn+1;
+        end   
+        maxval=max(ncr{'raw_image'}(tidx,iAz,blank:end,jj));
+        if (isempty(first_hi_val))
+            scan_surfval(jj)=1;
+            sstr(knt,jj)=1;
+        else
+            scan_surfval(jj)=first_hi_val+blank;
+            sstr(knt,jj)=ncr{'raw_image'}(tidx,iAz,first_hi_val+blank,jj);
+        end
 end
   if iAz==1
     minidx=szs(4)/2-5; maxidx=szs(4)/2+5;
