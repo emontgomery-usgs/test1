@@ -12,7 +12,7 @@ function M=famv855_2sweep(fname,wname,outfile_avi,start,stop)
 % fname='8558fan_proc.cdf';
 % wname='timwvht_41025';
 % output_avi='cccp_fan.avi';
-% fanmv855_overlay(fname,wname,output_avi,[2009 2 7 4 56 0],[2009 2 28 0 56 0])
+% fanmv855_2sweep(fname,wname,output_avi,[2009 2 7 4 56 0],[2009 2 28 0 56 0])
 
 % The output file is written with 'compression'='none' so that the images
 % and text are lossless.
@@ -32,11 +32,11 @@ magvar=str2double(ncf.magnetic_variation(:));
 timeobj = ncf{'time'};
 time2obj = ncf{'time2'};
 tj=timeobj(:)+time2obj(:)./(3600*1000*24);
-datenum_pen=datenum(gregorian(tj));
+datenum_fan=datenum(gregorian(tj));
 if nargin==3,
-    isonar=1:length(datenum_pen);
+    isonar=1:length(datenum_fan);
 else
-    isonar=find(datenum_pen>=datenum(start) & datenum_pen<=datenum(stop));
+    isonar=find(datenum_fan>=datenum(start) & datenum_fan<=datenum(stop));
 end
 % get the x and y axis values
 xx=ncf{'x'}(:);
@@ -58,8 +58,8 @@ if waves,
     load(wname);
     julian_wave = buoy_jday;
     datenum_wave = buoydat;
-    iwaves=find(datenum_wave>=floor(datenum_pen(isonar(1)))& ...
-        datenum_wave<=ceil(datenum_pen(isonar(end))));
+    iwaves=find(datenum_wave>=floor(datenum_fan(isonar(1)))& ...
+        datenum_wave<=ceil(datenum_fan(isonar(end))));
     datenum_wave=datenum_wave(iwaves);
     Hsig=wvht(iwaves);
 end
@@ -69,7 +69,7 @@ p=size(ncf{'sonar_image'});
 for i=1:length(isonar)
     for jj=1:2      % put both sweeps in
         ik=isonar(i);
-        datenum_sonar = datenum_pen(ik);
+        datenum_sonar = datenum_fan(ik);
         axes(sonar_ax);
         sonar_image=ncf{'sonar_image'}(ik,jj,:,:);
         %himage=pcolor(xx,-yy,sonar_image,'CDataMapping','scaled');
@@ -93,19 +93,18 @@ for i=1:length(isonar)
         % fc855rot(-magvar+10,'n');
         tt=text(0.85,0.965,'\uparrow North',...
             'units','normalized','color','k','fontsize',14);
-        ts=datestr(datenum_pen(ik),'dd-mmm-yy HH:MM');
+        ts=datestr(datenum_fan(ik),'dd-mmm-yy HH:MM');
         tt=text(.99,0.93,ts,...
             'units','normalized','color','k',...
             'horizontalalignment','right','fontsize',12);
         title('Hatteras 2009 fan sonar images')
-    end
     if waves
         axes(wave_ax);  %make the wave axis current
         hpp=plot(buoydat,wvht,'k');
         hold on;
         set(hpp,'linewidth',2);
-        hsigw=interp1(datenum_wave,Hsig,datenum_pen(ik));
-        wave_dot = plot(datenum_pen(ik),hsigw,'ro',...
+        hsigw=interp1(datenum_wave,Hsig,datenum_fan(ik));
+        wave_dot = plot(datenum_fan(ik),hsigw,'ro',...
             'markersize',8,'MarkerFaceColor','r');
         hold off
         set (wave_ax,'FontSize',14);
@@ -129,6 +128,8 @@ for i=1:length(isonar)
     M(fcnt)=getframe(h);    % add the gcf to get the entire window
     delete(himage);
     fcnt=fcnt+1;
+        end
+
 end
 
 disp([num2str(fcnt-1) ' frames written'])
