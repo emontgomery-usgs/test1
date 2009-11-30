@@ -1,6 +1,7 @@
 function [x, y, elev, sstr]= linfrm_rawpen(ncr, settings)
-% LINFR_RAWPEN uses the first increasing return in each angular scan to
+% LINFRM_RAWPEN uses the first increasing return in each angular scan to
 % define a line approximating the seafloor
+% usage : [x, y, elev, sstr]= linfrm_rawpen(ncr, settings)
 %  inputs: the open netdcf object for the raw file and settings
 % settings is a structure and should contain these things:
 %   1) tidx- the time index of the first dimension of ncr (72 is 1/28 at 0715)
@@ -73,12 +74,11 @@ alpha = settings.rot2compass; % use how much to rotate
 alpha = alpha.*(pi/180); % convert to radians
 
 %
-% pre-allocate
-% use rotnos=[1:1:60]; to do all rotations in an entire azimuth image- very slow!!
+% pre-allocate arrays
     if nsweeps==1
-        scan_nos=1:szs(3)-1;
+        scan_nos=2:szs(3);
     else
-        scan_nos=1:szs(3)/2;
+        scan_nos=2:szs(3)/nsweeps;
     end
 x=ones(nsweeps,length(scan_nos)); y=ones(nsweeps,length(scan_nos));
 elev=ones(nsweeps,length(scan_nos)); sstr=ones(nsweeps,length(scan_nos));
@@ -86,24 +86,35 @@ elev=ones(nsweeps,length(scan_nos)); sstr=ones(nsweeps,length(scan_nos));
 %iAz=1;   % for now- will want to do all the rotations eventually
 
 knt=1;
+%separating the sweeps isn't as simple as dividing the data in half-  need
+%to start at the second scan, and skip the middle point.
+% for 884 scans, sweep 1 is 2:442 and sweep2 is 444:884 (both length 441)
 for iAz=1:nsweeps
     if nsweeps==2
         if iAz==1
-            scan_nos=1:szs(3)/2;
+            scan_nos=2:szs(3)/2;
         else
-            scan_nos=(szs(3)/2):szs(3)-1;
+            scan_nos=(szs(3)/2)+2:szs(3);
         end
     end
-    for jj=scan_nos
-        % Note the last headangle and data point is NG, so that dimension needs to be -1
-        first_hi_val=find(diff(ncr{'raw_image'}(tidx,blank:end,jj) > thold),1,'first');
-        nn=1;       %set counter for cahnging the threshold, in case it's needed
-        while( first_hi_val+blank > 350)
+    % don't know of a vectorized way to do this part- it's slow
+    % ** the current "best" bottom detection is finding the change in slope 
+    % of each scan (uses thold to find change in slope)
+    for jj=1:length(scan_nos)
+       % index into raw_image should be scan_nos
+       % in sweep 2, scan_nos(1) will be 444- the value from that scan
+       % should go into scan_surfval(1) on sweep 2- values are re-set each
+       % sweep
+        first_hi_val=find(diff(ncr{'raw_image'}(tidx,blank:end,scan_nos(jj)) > thold),1,'first');
+        nn=1;       %set counter for changing the threshold, in case it's needed
+        % use a lower threshold, if doesn't get a signal with first one.
+        while( first_hi_val+blank > 400)
             temp_thold=thold-nn;
-            first_hi_val=find(diff(ncr{'raw_image'}(tidx,blank:end,jj) > temp_thold),1,'first');
+            first_hi_val=find(diff(ncr{'raw_image'}(tidx,blank:end,scan_nos(jj)) > temp_thold),1,'first');
             nn=nn+1;
         end   
-        maxval=max(ncr{'raw_image'}(tidx,blank:end-1,jj));
+        maxval=max(ncr{'raw_image'}(tidx,blank:end-1,scan_nos(jj)));
+      %index into the output vectors should be jj to start at 1 each sweep
         if (isempty(first_hi_val))
             scan_surfval(jj)=1;
             sstr(knt,jj)=1;
@@ -120,7 +131,7 @@ for iAz=1:nsweeps
     beta = hdang.*(pi/180); % convert to radians
     m = A.*tan(beta); % horizontal distance from sweep apex to measurement M
     gamma = atan(m./Ro); % angle between points A and M
-    elev(knt,:) = (scan_surfval(scan_nos)*meters_per_point).*cos(beta'); % measured distance from apex A to bed
+    elev(knt,:) = (scan_surfval*meters_per_point).*cos(beta'); % measured distance from apex A to bed
     x(knt,:) = sqrt(m.^2+Ro.^2).*sin(gamma+alpha);
     y(knt,:) = sqrt(m.^2+Ro.^2).*cos(gamma+alpha);
     %clf
