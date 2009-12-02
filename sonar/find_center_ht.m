@@ -1,4 +1,11 @@
 function [dttim, tr_height, std_tr_height]=find_center_ht;
+% FIND_CENTER_HT traces the distance of the seafloor beneath all the azimuth
+% files.  The outputs could be used in ht_plt_mvco.m or similar
+%
+%  usage: [dttim, tr_height, std_tr_height]=find_center_ht;
+%    no input arguments- assumes cwd has az*_raw.cdf files
+% outputs are vectors of time, transducer height based on profile range
+% and the standard deviation of the points averaged in tr_height
 
 fname=dir('az*cdf');
 knt=1;

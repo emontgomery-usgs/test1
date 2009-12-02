@@ -3,6 +3,8 @@ function [Xplot, Yplot, thi, ri, Zs] = procfan08(ncr, plottype, settings);
 %  called by do_fan_rots.m - follows execution of mk_rawcdf_08
 % [x,y,thi, ri, zs] = procfan08(nc, plottype, settings)
 %
+% older version- use procfan instead!
+%
 % reads netcdf file created by mk_rawcdf
 % nc{'imagedata'}(time,points,scan) image data with header removed
 % nc{'head_pos'}(time,scan) head position in counts
