@@ -1,4 +1,4 @@
-% script newpenmeta855.m
+% script newpenmetatsts.m
 % metaSonarExample - an example script for processing a single ADV data file.
 % This program sets up metadata and runs the sonar processing appropriate
 % to the kind of sonar employwd.
@@ -44,10 +44,11 @@ userMeta.SonartoAnimate='pen';
 % these are configuration items not found in the instrument file - most of the 
 %  instrument set-up is obtained from header or switches 
 userMeta.Height=0.31;     %  mab at deployment
-userMeta.FirstSonarDay='06-Nov-2009';
-userMeta.LastSonarDay='07-Nov-2009';    % make sure there's more than 1 day
+userMeta.FirstSonarDay='18-Nov-2009';
+userMeta.LastSonarDay='19-Nov-2009';    % make sure there's more than 1 day
 userMeta.RootDataDir='C:\home\data\sonar_tst\nov09\';
 userMeta.sweeps=2;  % there's nothing in the header that has this info
+userMeta.note='first time is with non-skid tape, second is without';
 %
 % the ones below come into play if processing is to take place
 % the adcp related ones help determine how much to rotate the fan sonar image
@@ -62,25 +63,23 @@ procMeta.Pencil_tilt=0.0;
 procMeta.dxy=0.005;
 %
 % now set up the outfile name root
-outFile=['test' userMeta.SonartoAnimate '1106'];
+outFile=['test' userMeta.SonartoAnimate '1118'];
 
 % save the output information
 diary(sprintf('run%s',datestr(now,30))) 
 
 % create the raw cdf- repeat once for each type
-if 0
+if 1
     mkrawcdf(userMeta, outFile);
 end
 %
 % make processed images
 if 1
-    if strcmp(userMeta.SonartoAnimate,'fan')
-        do_fan_rots
     elseif strcmp(userMeta.SonartoAnimate,'pen')
         %do_pen_proc(procMeta, [outFile '_raw.cdf'],'y')
         do_pen_proc_1m(procMeta, [outFile '_raw.cdf'],'y')
     else
-        disp ('no processing available for azimuth files')
+        disp ('could not interpret command- try again')
     end
 end
 diary off
