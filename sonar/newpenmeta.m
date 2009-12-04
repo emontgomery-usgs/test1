@@ -1,4 +1,4 @@
-% script newpenmetatsts.m
+% script newpenmeta.m
 % metaSonarExample - an example script for processing a single ADV data file.
 % This program sets up metadata and runs the sonar processing appropriate
 % to the kind of sonar employwd.
@@ -76,8 +76,8 @@ end
 % make processed images
 if 1
     elseif strcmp(userMeta.SonartoAnimate,'pen')
-        %do_pen_proc(procMeta, [outFile '_raw.cdf'],'y')
-        do_pen_proc_1m(procMeta, [outFile '_raw.cdf'],'y')
+        do_pen_proc(procMeta, [outFile '_raw.cdf'],'y')
+        %do_pen_proc_m(procMeta, [outFile '_raw.cdf'],'y')
     else
         disp ('could not interpret command- try again')
     end

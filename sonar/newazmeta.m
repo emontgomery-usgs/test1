@@ -1,4 +1,4 @@
-% script newazmetatsts.m
+% script newazmeta.m
 % metaSonarExample - an example script for processing a single ADV data file.
 % This program sets up metadata and runs the sonar processing appropriate
 % to the kind of sonar employwd.
@@ -66,6 +66,9 @@ procMeta.dxy=0.005;
 diary(sprintf('run%s',datestr(now,30))) 
 outFile='dummy';   % not used for asimuth data- otherwise use a real name
 
+% pick a file name to be used in plotrange_cdf
+fname='az-2009-11-09_raw.cdf'
+
 % create the raw cdf- repeat once for each type
 if 1
     mkrawcdf(userMeta, outFile);
@@ -74,7 +77,7 @@ end
 % make processed images
 if 0
     if strcmp(userMeta.SonartoAnimate,'azm')
-        plotrange_cdf(['az2009-11-09_raw.cdf'],procMeta.tidx,procMeta)
+        plotrange_cdf(fname,procMeta.tidx,procMeta)
     else
         disp ('could not interpret command- try again')
     end

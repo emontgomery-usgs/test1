@@ -1,4 +1,4 @@
-% script newazmetatsts.m
+% script newfanmeta.m
 % metaSonarExample - an example script for processing a single ADV data file.
 % This program sets up metadata and runs the sonar processing appropriate
 % to the kind of sonar employwd.
