@@ -37,7 +37,7 @@ function [LAM,THETA,PPP, Xm, Ym, mnLM, mnTHE, mnP]=find_ripple_1030(fname,range)
 %  Changed April 30, 2007
 % Modifed by T. Nelson, September 6, 2007
 % -----  USER DEFINED PARAMETERS FOR ANALYSIS   ----
-plotme=0;
+plotme=1;
 %plotme=1;  % set to 1 to see plots and 0, if not
 %                be set to avoid an infinite loop.
 Rsq=5;         % Image range (m)

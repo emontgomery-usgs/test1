@@ -40,7 +40,7 @@ for jj=1:nsweeps
         hangj=hang(1:loc);
         imj=imagedata(:,1:loc);
     else
-        hangj=hang(loc+1:end);
+        hangj=hang(loc+1:end);  
         imj=imagedata(:,loc+1:end);
     end
 

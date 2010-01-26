@@ -63,7 +63,7 @@ procMeta.dxy=0.005;
 % save the output information
 diary(sprintf('run%s',datestr(now,30))) 
 % now set up the outfile name root
-outFile=['test' userMeta.SonartoAnimate '1109'];
+outFile=['unh' userMeta.SonartoAnimate '1108-tagets'];
 
 % create the raw cdf- repeat once for each type
 if 1

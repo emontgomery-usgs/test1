@@ -15,7 +15,7 @@ position_struct=eval(orientmeta_name);  % returns position_struct structure wher
 new_fan_00=position_struct.fan-[position_struct.fan(1:2) position_struct.fan(1:2)];
 
 %these have to be column vectors, and put adcp first
-y=[position_struct.adcp(4); new_fan_00(4)]
-x=[position_struct.adcp(3); new_fan_00(3)]
+y=[position_struct.adcp(4); new_fan_00(4)];
+x=[position_struct.adcp(3); new_fan_00(3)];
 % then use pcoord to get the azimuth 0-360 from adcp beam3 to fan 0
-[r, fanadcp_off]=pcoord(x,y)
+[r, fanadcp_off]=pcoord(x,y);
