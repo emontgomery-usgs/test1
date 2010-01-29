@@ -83,6 +83,9 @@ for ia=1:length(time_ind)
     % this part is customized for UNH tank arrangement 1
         Yc=[1.5 1.0 2.9];        % these are the center points of two boxes
         Xc=[3.1 -0.8 -1.6];
+%  alternate boxes over brighter part of the longer wavelength target- 
+%  none of these seems to get the correct wavelength and angle
+%     Yc=[2.2 2.4 2.6]; Xc=[3.2 3.4 3.6];
     for k=1:3
         % XX and YY are lower left and top right of a box
          XX(k,1:2)=[Xc(k)-2*Sm/2 Xc(k)+2*Sm/2];
