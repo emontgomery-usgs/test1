@@ -42,7 +42,7 @@ dx=0.01;       % x resolution of interpolated image
 dy=0.01;       % y resolution of interpolated image
 m=128;          % points of fft transform in the x direction
 n=128;          % points of fft transform in the y direction
-Squares=3;     % No of sub-sampled domains to be analyzed
+Squares=4;     % No of sub-sampled domains to be analyzed
 Sm = .5*max(m*dx,n*dy); % Side of each sub-domain (Square) in meters
 %
 WLim=3.0;         % Max Wave number limit (avoids the highs around the DC level)l(['load ',fname])
@@ -81,12 +81,15 @@ for ia=1:length(time_ind)
     % so when getting the box contents reverse the indices.
     
     % this part is customized for UNH tank arrangement 1
-        Yc=[1.5 1.0 2.9];        % these are the center points of two boxes
-        Xc=[3.1 -0.8 -1.6];
+        Yc=[1.5 1.0 2.9 0.0];        % these are the center points of three boxes
+         Xc=[3.1 -0.8 -1.6 -3.9];
+%  in this set wavelength of 1 is OK, but everything else is NG
+%         Yc=[0.5 1.1 -2.1];        % three boxes, 1 and 2 in slightly 
+%         Xc=[2.7 -0.6 0.6];        % different positions & 3 right of DZ
 %  alternate boxes over brighter part of the longer wavelength target- 
 %  none of these seems to get the correct wavelength and angle
 %     Yc=[2.2 2.4 2.6]; Xc=[3.2 3.4 3.6];
-    for k=1:3
+    for k=1:4
         % XX and YY are lower left and top right of a box
          XX(k,1:2)=[Xc(k)-2*Sm/2 Xc(k)+2*Sm/2];
          YY(k,1:2)=[Yc(k)-2*Sm/2 Yc(k)+2*Sm/2];
@@ -97,9 +100,10 @@ for ia=1:length(time_ind)
        pcolor(proc{'x'}(:), proc{'y'}(:),Z); shading flat
        hold on
         % this makes a simple plot of the boxes 
-        plot([Xc(3)-.6 Xc(3)-.6 Xc(3)+.6 Xc(3)+.6 Xc(3)-.6],[Yc(3)-.6 Yc(3)+.6 Yc(3)+.6 Yc(3)-.6 Yc(3)-.6],'k')
-        plot([Xc(2)-.6 Xc(2)-.6 Xc(2)+.6 Xc(2)+.6 Xc(2)-.6],[Yc(2)-.6 Yc(2)+.6 Yc(2)+.6 Yc(2)-.6 Yc(2)-.6],'k')
-        plot([Xc(1)-.6 Xc(1)-.6 Xc(1)+.6 Xc(1)+.6 Xc(1)-.6],[Yc(1)-.6 Yc(1)+.6 Yc(1)+.6 Yc(1)-.6 Yc(1)-.6],'k')
+        plot([Xc(4)-.6 Xc(4)-.6 Xc(4)+.6 Xc(4)+.6 Xc(4)-.6],[Yc(4)-.6 Yc(4)+.6 Yc(4)+.6 Yc(4)-.6 Yc(4)-.6],'k','LineWidth',2)
+        plot([Xc(3)-.6 Xc(3)-.6 Xc(3)+.6 Xc(3)+.6 Xc(3)-.6],[Yc(3)-.6 Yc(3)+.6 Yc(3)+.6 Yc(3)-.6 Yc(3)-.6],'k','LineWidth',2)
+        plot([Xc(2)-.6 Xc(2)-.6 Xc(2)+.6 Xc(2)+.6 Xc(2)-.6],[Yc(2)-.6 Yc(2)+.6 Yc(2)+.6 Yc(2)-.6 Yc(2)-.6],'k','LineWidth',2)
+        plot([Xc(1)-.6 Xc(1)-.6 Xc(1)+.6 Xc(1)+.6 Xc(1)-.6],[Yc(1)-.6 Yc(1)+.6 Yc(1)+.6 Yc(1)-.6 Yc(1)-.6],'k','LineWidth',2)
       plot(XX,YY, 'k*')
        
     %now here's where the boxes get overlaid on the data
