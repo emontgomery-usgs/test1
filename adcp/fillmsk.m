@@ -56,10 +56,17 @@ function [theMaskFile,velR,corT,echI,Pgd]=fillmsk(theDataFile,theMaskFile,velR,c
 %	premask.m-5/21/99 need the version of premask.m edited by JMC
 
 % version 1.0
+% updated 14-mar-2008 MM - allow masking in earth case, don't get hung up on
+% percent good
 % updated 13-Oct-1999 16:43:41
 % modified 17-Feb-2004 by ALR - if waves software has turned the Echo
 % Intensiy off, fillmask will set the echo intensity to [50 255] to process
 % the data.
+
+% get the current SVN version- the value is automatically obtained in svn
+% is the file's svn.keywords which is set to "Revision"
+rev_info = 'SVN $Revision: 1051 $';
+disp(sprintf('%s %s running',mfilename,rev_info))
 
 if nargin<1, theDataFile = ''; end
 if nargin<2, theMaskFile = ''; end
@@ -91,7 +98,8 @@ if any(theMaskFile == '*')
    if char(dlgresult{:})=='Yes';
       [p, outFile, ext, v] = fileparts(theDataFile);
 		theMaskFile = [outFile '.msk'];
-      ncmkmask(theDataFile,theMaskFile);
+      %ncmkmask(theDataFile,theMaskFile);
+      mkadcpmask(theDataFile,theMaskFile);
       disp(['The Mask file ' theMaskFile ' was created'])
       else 
          disp(['You must create a mask file to run fillmsk function'])
@@ -141,10 +149,65 @@ if nargin < 3
 	end
 
 	%To get global attribute data for use in premask
-   Pgd=f.minmax_percent_good(:);
-   if isequal(Pgd(1),0)
-   	Pgd = [25 Pgd(2)];
-   end
+        % from TRDI March 05 command and output format manual
+        % The percent-good data field is a data-quality indicator that reports the percentage
+        % (0 to 100) of good data collected for each depth cell of the velocity
+        % profile. The setting of the EX-command (Coordinate Transformation) determines
+        % how the Workhorse references percent-good data as shown below.
+        % EX-Command Coord. Sys  Velocity 1 Velocity 2 Velocity 3 Velocity 4
+        %                               Percentage Of Good Pings For:
+        %                               Beam 1 BEAM 2 BEAM 3 BEAM 4
+        % xxx00xxx Beam                     Percentage Of: 
+        % xxx01xxx Inst             3-Beam  Transformations    More Than One  4-Beam Transformations
+        % xxx10xxx Ship     Transformations Rejected (note 2) Beam Bad In Bin
+        % xxx11xxx Earth        (note 1)
+        % 1. Because profile data did not exceed correlation threshold (WC).
+        % 2. Because the error velocity threshold (WE) was exceeded.
+        % At the start of the velocity profile, the backscatter echo strength is typically
+        % high on all four beams. Under this condition, the Workhorse uses all four
+        % beams to calculate the orthogonal and error velocities. As the echo returns
+        % from far away depth cells, echo intensity decreases. At some point, the
+        % echo will be weak enough on any given beam to cause the Workhorse to
+        % reject some of its depth cell data. This causes the Workhorse to calculate
+        % velocities with three beams instead of four beams. When the Workhorse
+        % does 3-beam solutions, it stops calculating the error velocity because it
+        % needs four beams to do this. At some further depth cell, the Workhorse rejects
+        % all cell data because of the weak echo. As an example, let us assume
+        % depth cell 60 has returned the following percent-good data.
+        % FIELD #1 = 50, FIELD #2 = 5, FIELD #3 = 0, FIELD #4 = 45
+        % If the EX-command was set to collect velocities in BEAM coordinates, the
+        % example values show the percentage of pings having good solutions in cell
+        % 60 for each beam based on the Low Correlation Threshold (WC-command).
+        % Here, beam 1=50%, beam 2=5%, beam 3=0%, and beam 4=45%. These are
+        % not typical nor desired percentages. Typically, you would want all four
+        % beams to be about equal and greater than 25%.
+        % On the other hand, if velocities were collected in INSTRUMENT, SHIP, or
+        %     EARTH coordinates, the example values show:
+        %     FIELD 1 – Percentage of good 3-beam solutions – Shows percentage of
+        %     successful velocity calculations (50%) using 3-beam solutions because the
+        %     correlation threshold (WC) was not exceeded.
+        %     FIELD 2 – Percentage of transformations rejected – Shows percent of error
+        %     velocity (5%) that was less than the WE-command setting. WE has a default
+        %     of 5000 mm/s. This large WE setting effectively prevents the Workhorse
+        %     from rejecting data based on error velocity.
+        %     WorkHorse Commands and Output Data Format
+        %     P/N 957-6156-00 (March 2005) page 143
+        %     FIELD 3 – Percentage of more than one beam bad in bin – 0% of the velocity
+        %     data were rejected because not enough beams had good data.
+        %     FIELD 4 – Percentage of good 4-beam solutions – 45% of the velocity data
+        %     collected during the ensemble for depth cell 60 were calculated using four
+        %     beams.
+    Pgd=f.minmax_percent_good(:);
+    if strcmpi(f.transform(:),'BEAM'),
+        if isequal(Pgd(1),0)
+            Pgd = [25 Pgd(2)];
+        end
+    else % SHIP, INST, EARTH right now don't do anything different
+        if isequal(Pgd(1),0)
+            Pgd = [25 Pgd(2)];
+        end
+    end
+    
 	echI=f.false_target_reject_values(:);
     if isequal(echI(1),255)
         echI = [50 255]
@@ -158,12 +221,13 @@ if nargin < 3
 	corT=f.valid_correlation_range(:);
    
 end %if nargin<3;  
-   
+ 
+close(f)
+
 %Let's run premask based on these criteria
 %premask(theDataFile, theMaskFile, vel, cor, agc, good)
 premask(theDataFile,theMaskFile,velR,corT,echI,Pgd);
-% TODO move this premask function out of starbare directory
+
+%ncclose
 
 disp(['The mask is filled '])
-
-ncclose

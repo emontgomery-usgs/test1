@@ -1,9 +1,9 @@
 function theResult = bm2geo(theBeamData, theElevations, theAzimuths, ...
 								theHeading, thePitch, theRoll, ...
-								theOrientation, theBlankingDistance)
+								theOrientation)
 % bm2geo -- Convert ADCP beam-data to geographic components.
 %  bm2geo(theBeamData, theElevations, theAzimuths, theHeading,
-%   thePitch, theRoll, 'theOrientation', theBlankingDistance)
+%   thePitch, theRoll, 'theOrientation')
 %   converts theBeamData to geographic coordinates, using the
 %   beam configuration (theElevations, theAzimuths) and other
 %   orientation information. Solutions with fewer than four
@@ -17,7 +17,7 @@ function theResult = bm2geo(theBeamData, theElevations, theAzimuths, ...
 %  can be done before or after the present operations.
 %
 % "bm2geo" calls the "bm2dir" and "bm2xyze" functions.
-
+% it calls interp1 and thus takes some time...
 
 %%% START USGS BOILERPLATE -------------%
 % Use of this program is described in:
@@ -53,6 +53,8 @@ function theResult = bm2geo(theBeamData, theElevations, theAzimuths, ...
 % Updated 13-Aug-2001 added 'extrap' to the interp1 command (line 79) because the interp1 command changed
 %  in Matlab 6.0, and would fill in NaNs for theBeamData values (ALR), but kept old interp1 for earlier versions
 % Updated 05-Nov-2004 for MATLAB 7.x, suppress interp1 warnings
+% Updated 16-jan-2008 (MM) follow lint suggestions and remove unused variables
+%   and assignments
 
 % Reference: ADCP Coordinate Transformation: Formulas and
 %  Calculations (technical manual, 26 pages), RD Insruments,
@@ -65,7 +67,6 @@ if nargin < 4, theHeading = 0; end
 if nargin < 5, thePitch = 0; end
 if nargin < 6, theRoll = 0; end
 if nargin < 7, theOrientation = 'up'; end   % RDI default = 'down'.
-if nargin < 8, theBlankingDistance = 150; end   % cm.  RDI default = 0.
 
 % One elevation value given.
 
@@ -98,22 +99,20 @@ depth_bins = (1:m).' * abs(depth_scale);
 %  fashion.  (The ADCP uses this scheme internally
 %  when recording in earth-coordinates.)
 
-result = zeros(size(theBeamData));
-temp = zeros(1, n);
 % Added 'extrap' to the interp1 command so it would run in Matlab 6.0, but kept old interp1 for earlier versions
 ver = version;  %Determine version of Matlab
-ver = str2num (ver(1));
+ver = str2double (ver(1));
 if ver < 6
    for j = 1:n
-      theBeamData(:, j) = interp1(depth_bins(:, j),...
-          theBeamData(:, j), (1:m).', 'nearest');
+       theBeamData(:, j) = interp1(depth_bins(:, j),...
+           theBeamData(:, j), (1:m).', 'nearest');
    end
 else
     % turn off the warning generated in MATLAB 7.0
     s = warning('off', 'MATLAB:interp1:NaNinY');
     for j = 1:n
-       theBeamData(:, j) = interp1(depth_bins(:, j),...
-           theBeamData(:, j), (1:m).', 'nearest','extrap');
+        theBeamData(:, j) = interp1(depth_bins(:, j),...
+            theBeamData(:, j), (1:m).', 'nearest','extrap');
     end
     warning('on',s.identifier);
 end

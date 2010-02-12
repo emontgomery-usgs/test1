@@ -18,7 +18,7 @@ function [minens, maxens, nens, trimFile] = goodends(theBeamFile,theMaskFile,tri
 %   settings.stop_date = end date to trumcate file
 %
 %Outputs:
-%	minens = minimum ensemble used to
+%	minens = minimum ensemble 
 %	trimFile = the shortened file to be produced by cutting
 %		at the beginning and end of the ensemble record
 
@@ -60,6 +60,9 @@ function [minens, maxens, nens, trimFile] = goodends(theBeamFile,theMaskFile,tri
 % Please report bugs to jcote@usgs.gov
 %
 %
+% Updated 18-jun-2008 (MM) change to SVN revision info
+% updated 11-jan-2008 (MM) clean up some mlint, replace a switch statement
+% that was causing trimming in the wrong place.
 % updated 13-sep-2007 (MM) catch a bug if script operation omits a stop_date
 % updated 3-may-2007 (MM) improve detection of recovery and deployemnt
 % using features of find.m that didn't exist when this was first written,
@@ -83,10 +86,10 @@ function [minens, maxens, nens, trimFile] = goodends(theBeamFile,theMaskFile,tri
 
 ncquiet
 
-%tell us what function is running
-Mname=mfilename;
-disp('')
-disp([ Mname ' is currently running']);
+% get the current SVN version- the value is automatically obtained in svn
+% is the file's svn.keywords which is set to "Revision"
+rev_info = 'SVN $Revision: 1063 $';
+disp(sprintf('%s %s running',mfilename,rev_info))
 
 if nargin < 1, help(mfilename), end
 if nargin< 1, theBeamFile = ''; end
@@ -99,7 +102,7 @@ if isempty(theMaskFile), theMaskFile = '*'; end
 if isempty(trimFile), trimFile = '*'; end
 
 % Get ADCP Beam filename.
-if any(theBeamFile == '*') | ~exist(theBeamFile,'file')
+if any(theBeamFile == '*') || ~exist(theBeamFile,'file')
     [theFile, thePath] = uigetfile(theBeamFile, 'Select ADCP Netcdf File:');
     if ~any(theFile), return, end
 
@@ -108,7 +111,7 @@ if any(theBeamFile == '*') | ~exist(theBeamFile,'file')
 end
 g=netcdf(theBeamFile,'nowrite');
 
-[path,name,ext,ver]=fileparts(theBeamFile);
+[path,name]=fileparts(theBeamFile);
 suggest=[name(1:end-1) 'T.cdf'];
 
 
@@ -130,16 +133,17 @@ if nens <= 2
     disp('ensemble trimming was skipped due to insufficient ensembles')
     if isunix
         eval(['!cp  ' theBeamFile ' ' trimFile])
-    elseif any(findstr(lower(computer), 'pcwin')) | isVMS
+    elseif any(findstr(lower(computer), 'pcwin')) || isVMS
         eval(['!copy  ' theBeamFile ' ' trimFile])
-    elseif any(findstr(lower(computer), 'mac')) & ...
-            exist('aduplicate') == 2
+    elseif any(findstr(lower(computer), 'mac')) && ...
+            exist('aduplicate','var')
         feval('aduplicate', theBeamFile, trimFile)
     else
         fcopy(theBeamFile, trimFile)
     end
 
-    thecomment=sprintf('%s\n','No ensembles were trimmed by goodends.m');
+    thecomment=sprintf('No ensembles were trimmed by %s %s\n',...
+        mfilename, rev_info);
     history(trimFile,thecomment);
 
     %the required outputs
@@ -185,7 +189,7 @@ switch coord
     case 'BEAM'
 
         % Get ADCP Mask filename
-        if any(theMaskFile == '*') | ~exist(theMaskFile,'file')
+        if any(theMaskFile == '*') || ~exist(theMaskFile,'file')
             [theFile, thePath] = uigetfile(theMaskFile, 'Select ADCP Mask File:');
             if ~any(theFile), return, end
 
@@ -195,6 +199,7 @@ switch coord
         f=netcdf(theMaskFile,'nowrite');
 
         % Pulls out the masked velocity beam data into 4 cell arrays, one for each beam
+        vmask = cell(4);
         for k = 1:4
             vmask{k} = f{['vel' int2str(k)]};
         end
@@ -247,12 +252,13 @@ switch coord
         disp(['Based on the # of good bins, ' num2str(minens) ' is the first good ensemble']);
         disp(['and ' num2str(maxens) ' is the last good, out of ' num2str(nens) ' total ensembles'])
         disp(['from the file ' theMaskFile]);
-        disp([' '])
+        disp(' ')
         close(f)
 
         % Now check if Earth coordinates are used.
         % Earth coordinates will not have a masked file.
     case 'EARTH'
+        v = cell(4);
         for k = 1:4
             v{k} = g{['vel' int2str(k)]};  % Pulls out the velocity data and puts into cell array
         end
@@ -308,7 +314,7 @@ switch coord
         disp(['Based on the # of good bins, ' num2str(minens) ' is the first good ensemble']);
         disp(['and ' num2str(maxens) ' is the last good ensemble, out of ' num2str(nens) ' total ensembles'])
         disp(['from the file ' theBeamFile]);
-        disp([' '])
+        disp(' ')
 end     %for case loop
 
 %now let's check based on tilt
@@ -326,7 +332,7 @@ idP=find(abs(dP) < 2 & abs(dr) < 2);
 
 if isempty(idP)
     minp = 1;
-elseif isequal(idP(1),1) & ~isequal(idP(2),2)
+elseif isequal(idP(1),1) && ~isequal(idP(2),2)
     minp = idP(2);
 else
     minp = idP(1);
@@ -347,16 +353,17 @@ maxens=maxp;
 disp(['Based on pitch and roll, ' num2str(minens) ' is the first good ensemble']);
 disp(['and ' num2str(maxens) ' is the last good, out of ' num2str(nens) ' total ensembles'])
 disp(['in file ' theBeamFile])
-disp([' '])
+disp(' ')
 
 
 %Needs recently created Netcdf file to run
 %some attributes may not be available in older files
 %let's check these results by getting time in gregorian
 gtD=gregorian(time(minens));
-minT=datestr(datenum(gtD(1),gtD(2),gtD(3)),1)
+minT=datestr(datenum(gtD(1),gtD(2),gtD(3)),1);
 gtR=gregorian(time(maxens));
-maxT=datestr(datenum(gtR(1),gtR(2),gtR(3)),1)
+maxT=datestr(datenum(gtR(1),gtR(2),gtR(3)),1);
+disp(sprintf('minT = %s, maxT = %s',minT,maxT))
 lastEnsT = maxT;
 
 if ~isempty([ddate,rdate]);
@@ -369,7 +376,7 @@ if ~isempty([ddate,rdate]);
 
             if isequal(datenum(minT),datenum(ddate))
                 disp(['The first good ensemble' num2str(minens) ' recorded on ' num2str(minT)])
-                disp(['based on number of good bins, roll, and pitch matches the deployment date ' ])
+                disp('based on number of good bins, roll, and pitch matches the deployment date ')
                 minens=inens(ii);
                 minT=NminT;
                 break
@@ -396,7 +403,7 @@ if ~isempty([ddate,rdate]);
             NmaxT=datestr(datenum(NgtR(1),NgtR(2),NgtR(3)),1);
 
             if isequal(datenum(NmaxT),datenum(rdate))
-                disp('The last good ensemble was chosen based on recovery date')
+                disp(sprintf('The last good ensemble was chosen based on recovery date %s',rdate))
                 disp(['Number of good bins, roll, and pitch gave ensemble ' num2str(minens) ' recorded on ' minT])
                 maxens=oxens(ii);
                 maxT=NmaxT;
@@ -406,7 +413,7 @@ if ~isempty([ddate,rdate]);
             end
         end
     else
-        disp(['The last good ensemble is same as recovery date, ' num2str(maxT)]);
+        disp(['The last good ensemble is same as recovery date, ' maxT]);
     end
 
     % first, see if the user has given a preferred override
@@ -430,61 +437,69 @@ if ~isempty([ddate,rdate]);
 
             disp('End date unclear, ask user')
             str = {[maxT ' For Tilt'],[rdate ' Recovery'],[lastEnsT ' All Data']};
-            [selection,ok] = listdlg('PromptString','Select a date:',...
-                'SelectionMode','single', 'ListString',str);
-            if ~ok, % user pressed cancel
-                disp('Goodends: User aborted in choosing end dates')
-                minens = []; maxens = [];
-                return
-            end
+            % TODO - why are these modal dialog boxes causing problems?
+            %[selection,ok] = listdlg('PromptString',{'Select a date:'},...
+            %    'SelectionMode','single', 'ListString',str);
+            %if ~ok, % user pressed cancel
+            %    disp('Goodends: User aborted in choosing end dates')
+            %    minens = []; maxens = [];
+            %    return
+            %end
+            selection = menu('Select an end date:',...
+                str{1}, str{2}, str{3});
             goodinfo = str{selection};
-            gooddate = goodinfo(1:11);
-
-            disp([' '])
-            switch lower(gooddate)
-                case {lower(maxT)}
-                    maxens = maxens;
-                    disp(['The last good ensemble occurs at ' maxT])
-                    disp(['and the recorded recovery date is ' rdate]);
-                case {lower(rdate)}
-                    if ~isempty(rdens)
-                        maxens = rdens;
-                    end
-                    disp(['The recorded recovery date ' rdate])
-                    disp('was used to determine the last good ensemble')
-                case {lower(lastEnsT)}
-                    maxens = lastEnsI;
-                    disp(['All data through ' lastEnsT ' will be kept'])
-                otherwise
-                    disp('invalid recovery date')
+ 
+            if findstr(goodinfo,'Tilt'),
+                jr = julian(datevec(maxT));
+                maxens = find(time >= jr,1,'first');
+                disp(['The last good ensemble occurs at ' maxT])
+                disp(['and the recorded recovery date is ' rdate]);
+            elseif findstr(goodinfo,'Recovery'),
+                if ~isempty(rdens), 
+                    maxens = rdens;
+                end
+                disp(['The recorded recovery date ' rdate])
+                disp('was used to determine the last good ensemble')
+            elseif findstr(goodinfo,'All'),
+                maxens = lastEnsI;
+                disp(['All data through ' lastEnsT ' will be kept'])
+            else
+                disp('invalid recovery date')
             end
+            
+            % TODO make sure that the selected end time is not past the end of the file
+            
+        else % max tilt date = recovery date, this is the last good ensemble
+            jr = julian(datevec(maxT));
+            maxens = find(time >= jr,1,'first');
         end
     end
 end
 close(g)
 
 %let's cut down the record based on the minens and maxens given
-if ~isequal(1,minens) | ~isequal(maxens,nens)
+if ~isequal(1,minens) || ~isequal(maxens,nens)
     disp(['Trimming file from ensemble ' num2str(minens) ' to ' num2str(maxens)]);
     nctrim(theBeamFile, trimFile, (minens:maxens), 'ensemble','isVerbose');
 
-    thecomment=sprintf...
-        ('%s\n','Ensembles recorded pre and post deployment were trimmed by goodends.m.');
+    thecomment=sprintf('Ensembles recorded pre and post deployment were trimmed by %s %s\n',...
+        mfilename, rev_info);
     history(trimFile,thecomment);
 else
     disp('no trimming was required')
     if isunix
         eval(['!cp  ' theBeamFile ' ' trimFile])
-    elseif any(findstr(lower(computer), 'pcwin')) | isVMS
+    elseif any(findstr(lower(computer), 'pcwin')) || isVMS
         eval(['!copy  ' theBeamFile ' ' trimFile])
-    elseif any(findstr(lower(computer), 'mac')) & ...
-            exist('aduplicate') == 2
+    elseif any(findstr(lower(computer), 'mac')) && ...
+            exist('aduplicate','var'),
         feval('aduplicate', theBeamFile, trimFile)
     else
         fcopy(theBeamFile, trimFile)
     end
 
-    thecomment=sprintf('%s\n','No ensembles were trimmed by goodends.m;');
+    thecomment=sprintf('No ensembles were trimmed by %s %s;\n',...
+        mfilename, rev_info);
     history(trimFile,thecomment);
 end
 

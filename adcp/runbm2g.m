@@ -1,6 +1,6 @@
 function cur = runbm2g(BeamFile, ADCPtype, dlgFile, theElevations, ...
    theAzimuths, theHeading, thePitch, theRoll, ...
-   theOrientation, theBlankingDistance)
+   theOrientation)
 
 %function cur = runbm2g(BeamFile, ADCPtype, dlgFile, theElevations, ...
 %   theAzimuths, theHeading, thePitch, theRoll, ...
@@ -30,9 +30,6 @@ function cur = runbm2g(BeamFile, ADCPtype, dlgFile, theElevations, ...
 % Output:
 %	 cur = velocities transformed into earth coordinates
 %
-% This is work in progress and since this operation is time intensive
-% cur.mat is also saved to the desktop in the current directory.  
-% cur.mat can be loaded into adcp2ep.m if something happens.
 
 
 %%% START USGS BOILERPLATE -------------%
@@ -68,25 +65,29 @@ function cur = runbm2g(BeamFile, ADCPtype, dlgFile, theElevations, ...
 % http://woodshole.er.usgs.gov/
 % Please report bugs to jcote@usgs.gov
 
+% Updated 18-jun-2008 (MM) change to SVN revision info
+% updated 13-apr-2008 (MM) history comment was getting put in the
+% non-rotatedfile!
+% updated 16-jan-2008 (MM) follow lint afvice and get rid of unused
+% variables and inputs
 % version 1.0
 % updated 12-feb-2007 check for dialog file rather than just bombing
 % updated 28-Dec-2000 added line feeds to comment/history attribute (ALR)
 % updated 10-Dec-1999 10:52:22
 % updated 18-Oct-1999 16:35:41
 
-%tell us what function is running
-Mname=mfilename;
-disp('')
-disp([ Mname ' is currently running']);
+% get the current SVN version- the value is automatically obtained in svn
+% is the file's svn.keywords which is set to "Revision"
+rev_info = 'SVN $Revision: 1063 $';
+disp(sprintf('%s %s running',mfilename,rev_info))
 
+if nargin < 1, help(mfilename), BeamFile=''; end
+if nargin < 2, ADCPtype =''; end
+if nargin < 3, dlgFile=''; end
 
-if nargin < 1, help(mfilename), BeamFile='';, end
-if nargin < 2, ADCPtype ='';, end
-if nargin < 3, dlgFile='';, end
-
-if isempty(BeamFile), BeamFile = '*';, end
-if isempty(ADCPtype), ADCPtype = 'WH';, end
-if isempty(dlgFile), dlgFile = '*';, end
+if isempty(BeamFile), BeamFile = '*'; end
+if isempty(ADCPtype), ADCPtype = 'WH'; end
+if isempty(dlgFile), dlgFile = '*'; end
 
 if ~exist(dlgFile,'file'), dlgFile = '*'; end
 
@@ -100,51 +101,53 @@ end
 
 ADCPtype = upper(ADCPtype);
 if isequal(ADCPtype, 'WH')
-	% Find *.dlg file.
-	if any(dlgFile == '*')
-		[theFile, thePath] = uigetfile('*.dlg', 'Select ADCP Deployment Log File:');
-		if ~any(theFile), return, end
-		if thePath(end) ~= filesep, thePath(end+1) = filesep; end
-		dlgFile = [thePath theFile];
-	end
+    % Find *.dlg file.
+    if any(dlgFile == '*')
+        [theFile, thePath] = uigetfile('*.dlg', 'Select ADCP Deployment Log File:');
+        if ~any(theFile), return, end
+        if thePath(end) ~= filesep, thePath(end+1) = filesep; end
+        dlgFile = [thePath theFile];
+    end
 
-	%Let's pull the Elevations and azimuths out of the *.dlg file
-	if nargin < 4
-		theBeams=zeros(4,1);
-		theElevations=zeros(4,1);
-		theAzimuths=zeros(4,1);
+    %Let's pull the Elevations and azimuths out of the *.dlg file
+    if nargin < 4
+        theBeams=zeros(4,1);
+        theElevations=zeros(4,1);
+        theAzimuths=zeros(4,1);
 
-		dlg=fopen(dlgFile);
-		disp(['Obtaining Beam configuration information from ' dlgFile])
-	while 1
-		line=fgetl(dlg);
-      s=findstr(line,'Beam Width:');
-      if ~isempty(s)
-         width=line;
-         disp(line)
-      end
-      
-      names=findstr(line,'Elevation');
-      if ~isempty(names)
-         for ii=1:4;
+        dlg=fopen(dlgFile);
+        disp(['Obtaining Beam configuration information from ' dlgFile])
+        while 1
             line=fgetl(dlg);
-            theBeams(ii)=str2num(line(3));
-         	theElevations(ii)=str2num(line(13:20));
-   			theAzimuths(ii)=str2num(line(23:30));
-         end
-      break, end  
-   end
-	fclose(dlg);
-	end
+            % TODO - return beam width to file attributes for use in
+            % findsurface
+            s=findstr(line,'Beam Width:');
+            if ~isempty(s)
+                disp(line)
+            end
+
+            names=findstr(line,'Elevation');
+            if ~isempty(names)
+                for ii=1:4;
+                    line=fgetl(dlg);
+                    theBeams(ii)=str2double(line(3));
+                    theElevations(ii)=str2num(line(13:20));
+                    theAzimuths(ii)=str2num(line(23:30));
+                end
+                break;
+            end
+        end
+        fclose(dlg);
+    end
 else
-   %for broad band (BB) has a perfect beam configuration
-   theElevations = [-70 -70 -70 -70]
-	theAzimuths = [270 90 0 180]
+    %for broad band (BB) has a perfect beam configuration
+   theElevations = [-70 -70 -70 -70];
+	theAzimuths = [270 90 0 180];
 end %if ADCPtype
 
 
 if nargin < 6
-   B=netcdf(BeamFile)
+   B=netcdf(BeamFile);
    if isempty(B), return, end
    theHeading=B{'Hdg'}(:);
    thePitch=B{'Ptch'}(:);
@@ -152,14 +155,9 @@ if nargin < 6
    theOrientation = lower(B.orientation(:));
       %trap for empty orientation by FSH, 3 Nov 1999
    if (isempty(B.orientation(:)))
-      theOrientation = 'up'
+      theOrientation = 'up';
    end
 
-end
-
-if nargin < 9   
-   %theOrientation = '';
-   theBlankingDistance = B{'D'}.blanking_distance(:);
 end
 
 %get some information
@@ -167,38 +165,37 @@ theFillValue = fillval(B{'vel1'});
 bin = size(B('bin'),1);
 ensemble = size(B('ensemble'),1);
 
-
 %get the velocity data and set the new velocity variable
-for ii = 1:4;
-   vel{ii} = B{['vel' int2str(ii)]};   % Input ADCP velocities.
+vel = cell(4,1);
+cur = cell(4,1);
+for ibeam = 1:4;
+    vel{ibeam} = B{['vel' int2str(ibeam)]};   % Input ADCP velocities.
+    cur{ibeam} = ones(size(vel{ibeam})).*NaN; % preallocate cur
 end
 
-cur = cell(size(vel));   % Output currents and error.
+% more preallocation for speed
 q = zeros(4, bin);
+p = q;
 
 tic
-for ii=1:ensemble
-	for k = 1:4
-  	 p(k, :) = vel{k}(ii, :);	
-	end
-	p(p == theFillValue) = nan;
-   
-%convert from beam to geo, note the transposes!
-q = bm2geo(p.', theElevations, theAzimuths, theHeading(ii), thePitch(ii), theRoll(ii), theOrientation, theBlankingDistance).';
-   if ~rem(ii,100), 
-      disp(sprintf('%d ensembles converted in %d min',ii,toc/60)), 
-   end
+for iens=1:ensemble
+    p = [vel{1}(iens, :); vel{2}(iens, :); vel{3}(iens, :); vel{4}(iens, :)];
+    
+    p(p == theFillValue) = nan;
 
-q(isnan(q)) = theFillValue;
-   for k = 1:4
-			cur{k}(ii, :) = q(k, :);
-   end
-   
+    %convert from beam to geo, note the transposes!
+    q = bm2geo(p.', theElevations, theAzimuths, theHeading(iens), thePitch(iens), theRoll(iens), theOrientation).';
+    if ~rem(iens,100),
+        disp(sprintf('%d ensembles converted in %d min',iens,toc/60)),
+    end
+
+    q(isnan(q)) = theFillValue;
+    % this is just slightly faster than a for loop
+    cur{1}(iens, :) = q(1, :);
+    cur{2}(iens, :) = q(2, :);
+    cur{3}(iens, :) = q(3, :);
+    cur{4}(iens, :) = q(4, :);
 end
-
-save cur.mat cur
 
 close(B)
 
-thecomment = sprintf('%s\n','Transformed to earth coordinates by runbm2g.m');
-history(BeamFile,thecomment);

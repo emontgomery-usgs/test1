@@ -12,6 +12,7 @@ function [nMissEns] = fixEns(rawcdf,theFilledFile)
 % OUTPUTS:
 %       nMissENs = the number of missing ensembles found
 %
+
 % Written by Andree L. Ramsey
 % for the U.S. Geological Survey
 % Coastal and Marine Geology Program
@@ -19,6 +20,9 @@ function [nMissEns] = fixEns(rawcdf,theFilledFile)
 % http://woodshole.er.usgs.gov/
 % Please report bugs to aramsey@usgs.gov
 %
+% Updated 18-jun-2008 (MM) change to SVN revision info
+% updated 25-feb-2008 (MM) to remove hardwired variable names to accommodate
+% future toolbox modifications, I am looking for data to test this.
 % updated 22-dec-2006 to work around a subsref problem win copy with multidimensional vars
 % updated 21-Sep-2005 to correct for ensemble number resets (see GV 9/20/05)for places of changes
 % updated 10-Jan-2003 (ALR) added ability to run without having to give inputs names and added information
@@ -54,11 +58,10 @@ function [nMissEns] = fixEns(rawcdf,theFilledFile)
 %
 %%% END USGS BOILERPLATE --------------
 
- 
-Mname=mfilename;
-disp('')
-disp([Mname ' is currently running version 2.0']);
-
+% get the current SVN version- the value is automatically obtained in svn
+% is the file's svn.keywords which is set to "Revision"
+rev_info = 'SVN $Revision: 1063 $';
+disp(sprintf('%s %s running',mfilename,rev_info))
 
 if nargin < 1, rawcdf = ''; end
 if nargin < 2, theFilledFile = ''; end
@@ -102,9 +105,9 @@ lastRec=RRec(end);
 % ---------------
 %
 if lastRec<=firstRec
-   error('The LAST RECORD # is smaller than the FIRST RECORD #, Problem with the file!! ')
    ncclose
-   return
+   error('The LAST RECORD # is smaller than the FIRST RECORD #, Problem with the file!! ')
+   %return
 end
 %
 nEns=lastRec-(firstRec-1); % why is 1 subtracted here?
@@ -173,7 +176,7 @@ for ivar = 1:length(varObjs),
     [nrows,ncols]=size(data);
     if ncols == 1,
         c{varname}(1:length(data)) = a{varname}(:);
-    else,
+    else
         c{varname}(1:nrows,1:ncols) = data;
     end
 end
@@ -183,31 +186,59 @@ end
 c{'TIM'}(:)=newTIM;
 c{'Rec'}(:)=newRec; 
 % now fix data that's present in all ADCP file type
-% 1D variables first
-datatypes = {'Hdg'; 'Ptch'; 'Roll'; 'Tx'; 'height'; 'sv'; 'xmitc'; 'xmitv'; 'dac';...
-        'VDD3'; 'VDD1'; 'VDC'; 'height'}; 
-% note that D is not listed here... it does not need to be fixed
-for i=1:length(datatypes),
-    disp(['Fixing ',datatypes{i}])
-    if ~isempty(c{datatypes{i}}), % if they exist in this file.  Thus traps for variables missing from PD12 data        
-        newData = ones(length(newRec),1).*fillV;
-        newData(goodidx) = a{datatypes{i}}(:); % fill in the good data
-        c{datatypes{i}}(:) = newData;
+% sort the 1D and 2D variables out
+n2d=1;
+n1d=1;
+twoDflag = 0;
+varnames = ncnames(var(a));
+for ivar=1:length(varnames), % skip some variables
+    if ~strcmp(varnames{ivar},'D') && ~strcmp(varnames{ivar},'bin'),
+        dimnames = ncnames(dim(a{varnames{ivar}})); % check dimensions
+        for idim = 1:length(dimnames),
+            if strcmp(dimnames{idim},'bin'),
+                twoDflag = 1;
+            end
+        end
+        if twoDflag,
+            twoDvars{n2d} = varnames{ivar};
+            n2d=n2d+1;
+        else
+            oneDvars{n1d} = varnames{ivar};
+            n1d=n1d+1;
+        end
+        twoDflag = 0;
     end
 end
-% now 2D variables
-datatypes = {'vel1'; 'vel2'; 'vel3'; 'vel4'};
-% must do it this way for 2D variables.  For some reason, if c{datatypes{i}} doesn't work here
-if ~PD12,
-    datatypes = {'vel1'; 'vel2'; 'vel3'; 'vel4'; 'cor1'; 'cor2'; 'cor3'; 'cor4';...
-        'AGC1'; 'AGC2'; 'AGC3'; 'AGC4'; 'PGd1'; 'PGd2'; 'PGd3'; 'PGd4'};
-end
-nbins = length(c{'D'}(:));
-for i=1:length(datatypes),
-    disp(datatypes{i})
-    newData = ones(length(newRec),nbins).*fillV;
-    newData(goodidx,:) = a{datatypes{i}}(:,:); % fill in the good data
-    c{datatypes{i}}(:,:) = newData;
+if 1,
+    % 1D variables first
+    %     datatypes = {'Hdg'; 'Ptch'; 'Roll'; 'Tx'; 'height'; 'sv'; 'xmitc'; 'xmitv'; 'dac';...
+    %         'VDD3'; 'VDD1'; 'VDC'; 'brange'; 'HdgSTD'; 'PtchSTD'; 'RollSTD';...
+    %         'EWD1'; 'EWD2'; 'EWD3'; 'EWD4'; 'Pressure'; 'PressVar','ensemble'};
+    % note that D is not listed here... it does not need to be fixed
+    datatypes = oneDvars;
+    for i=1:length(datatypes),
+        disp(['Fixing ',datatypes{i}])
+        if ~isempty(c{datatypes{i}}), % if they exist in this file.  Thus traps for variables missing from PD12 data
+            newData = ones(length(newRec),1).*fillV;
+            newData(goodidx) = a{datatypes{i}}(:); % fill in the good data
+            c{datatypes{i}}(:) = newData;
+        end
+    end
+    % now 2D variables
+    % datatypes = {'vel1'; 'vel2'; 'vel3'; 'vel4'};
+    % must do it this way for 2D variables.  For some reason, if c{datatypes{i}} doesn't work here
+    %     if ~PD12,
+    %         datatypes = {'vel1'; 'vel2'; 'vel3'; 'vel4'; 'cor1'; 'cor2'; 'cor3'; 'cor4';...
+    %             'AGC1'; 'AGC2'; 'AGC3'; 'AGC4'; 'PGd1'; 'PGd2'; 'PGd3'; 'PGd4'};
+    %     end
+    datatypes = twoDvars;
+    nbins = length(c{'D'}(:));
+    for i=1:length(datatypes),
+        disp(datatypes{i})
+        newData = ones(length(newRec),nbins).*fillV;
+        newData(goodidx,:) = a{datatypes{i}}(:,:); % fill in the good data
+        c{datatypes{i}}(:,:) = newData;
+    end
 end
 
 disp('Fill values have been filled in as place holders for missing ensemble numbers')
@@ -216,7 +247,8 @@ ncclose
 
 %Last, need a commnet in the history field
 thecomment1=sprintf...
-   ('%s\n','The missing ensemble numbers that were filled with fill values using fixEns.m were: ');
+   ('The missing ensemble numbers that were filled with fill values using %s %s were: \n',...
+   mfilename, ver_info);
 thecomment2=(sprintf(' %d;',MissEnsNos));
 thecomment3=(sprintf('%s\n',''));   %A line feed to separate the previous comment
 thecomment=[thecomment1 thecomment2 thecomment3];

@@ -12,19 +12,30 @@ function status = rdi2cdf(infile, outfile, minens, maxens, settings)
 %       settings = metadata settings input
 %       status = -1 if there is a failure
 %
+% settings is used to run the function in batch mode within a script.
+%         settings.rdi2cdf.Mooring_number = '8221'; % mooring number (USGS) or other identifier
+%         settings.rdi2cdf.Deployment_date = '28-jun-2006';  % date the ADCP entered the water
+%         settings.rdi2cdf.Recovery_date = '19-sep-2006'; % date the ADCP exited the water
+%         settings.rdi2cdf.water_depth = 20.5; % in meters
+%         settings.rdi2cdf.ADCP_serial_number = 2054; 
+%         settings.rdi2cdf.transducer_offset = 1.235; % ADCP transducer offset from the sea bed
+%         settings.rdi2cdf.pred_accuracy = 0.79; % from TRDI PLAN in cm/s
+%         settings.rdi2cdf.slow_by = 3*60+9; % clock drift
+%         settings.rdi2cdf.magnetic = 12.9; % declination in degrees, west is negative
+%         settings.rdi2cdf.goodens = [1 Inf]; 
+%     
 % Example:  rdi2cdf(infile, outfile, [], [], settings);
 %       to run rdi2cdf without interaction and convert all ensembles
 %
 % If no outfile is given, the header info for the file is displayed
-% Version 3.0	10-Jan-2003
 
 
 %%% START USGS BOILERPLATE -------------%
 % Use of this program is described in:
 %
 % Acoustic Doppler Current Profiler Data Processing System Manual 
-% Jessica M. Côté, Frances A. Hotchkiss, Marinna Martini, Charles R. Denham
-% Revisions by: Andrée L. Ramsey, Stephen Ruane
+% Jessica M. Cï¿½tï¿½, Frances A. Hotchkiss, Marinna Martini, Charles R. Denham
+% Revisions by: Andrï¿½e L. Ramsey, Stephen Ruane
 % U.S. Geological Survey Open File Report 00-458 
 % Check for later versions of this Open-File, it is a living document.
 %
@@ -54,6 +65,7 @@ function status = rdi2cdf(infile, outfile, minens, maxens, settings)
 %	rdhead.m	reads RDI header data format
 %	rdflead.m	reads RDI fixed leader format
 %	rdvlead.m	reads RDI variable leader format
+%   rdbtadcp.m  read RDI bottom track data
 %	mcnote.m	annotate netCDF data
 %	mexcdf.mex	netCDF file I/O
 %
@@ -64,11 +76,15 @@ function status = rdi2cdf(infile, outfile, minens, maxens, settings)
 % it's free!!
 %
 %
-prog_ver = '3.3 12-feb-2007';
-disp(['rdi2cdf.m version ',prog_ver]);
-
-% modified to use additional global attributes read by read_globatts()
-%  (EM) 24-Sep-2007
+% Updated 18-jun-2008 (MM) change to SVN revision information
+% Updated 24-feb-2008 (MM) add the coordinate variable ensemble so that the
+% real ensemble numbers get displayed by ncbrowse
+% Updated 15-jan-2008 (MM) fix a badly written if-then
+% Updated 21-dec-2007 (MM) fix a bug where longnames was getting altered
+% (cell referencing for varnames)
+% Updated 25-sep-2007 (MM) add readout of Pressure Variance & Error Status Word
+% Updated 19 sep 2007 (MM) add BT readout capability
+% included using cell referencing for varnames
 % checked 10-sep-2007 (MM) Verified that the dimension variables, 
 % ensemble & bin do not have _FillValue defined
 % Updated 3-may-2007 (MM) stop truncating metadata.  This was causing
@@ -131,12 +147,20 @@ disp(['rdi2cdf.m version ',prog_ver]);
 %
 % 10/29/96  Version 0.0
 
+% get the current SVN version- the value is automatically obtained in svn
+% is the file's svn.keywords which is set to "Revision"
+rev_info = 'SVN $Revision: 1495 $';
+disp(sprintf('%s %s running',mfilename,rev_info))
+
 mexcdf('SETOPTS',0);
 status = 1;
 
-% no necdf equivalent
+% no netcdf equivalent
 if nargin == 0,
-	error('I need an input file name');
+	%error('I need an input file name');
+    [filename, pathname] = uigetfile({'*.000';'*.PD0'},'Open a raw RDI current data file');
+    if ~filename, status = -1; return; end
+    infile = fullfile(pathname, filename);
 end
 % check the input file
 if any(findstr(lower(computer), 'mac')) % added to work with mac OSx
@@ -150,11 +174,12 @@ if nargin < 2,	% assume the user only wants header info output
 else verbose = 0;
 end
 if fid < 0, 
-    disp(['rdi2cdf: cound not open ',infile])
+    disp(['rdi2cdf: could not open ',infile])
     status = -1;
     return
 end
-[nbytes, nt, offsets] = rdhead(fid, verbose);
+%[nbytes, nt, offsets] = rdhead(fid, verbose);
+nbytes = rdhead(fid, verbose);
 if isempty(nbytes),  % make sure this is readable
     disp('rdi2cdf: could not read raw data')
     status = -1;
@@ -184,9 +209,18 @@ GOOD = 6;
 read_types=['int16';'int16';'int16';'uchar';'uchar';'uchar'];
 % likewise, the first two rec ids are for the fixed and
 % variable leader records
-rec_ids=[0 128 256 512 768 1024];
-longnames = str2mat(' ',' ','velocity','correlation','intensity','percent good');
-VARNAMES=['   ';'   ';'vel';'cor';'AGC';'PGd'];
+%rec_ids=[0 128 256 512 768 1024];
+rec_ids=[0 128 256 512 768 1024 6];
+longnames = {' ',' ','velocity','correlation','intensity','percent good',...
+   'BT range','BT Error Velocity','BT Eastward Velocity','BT Northward Velocity','BT Vertical Velocity',...
+   'BT correlation','BT evaluation','BT percent good',...
+   'BT Ref. min','BT Ref. near','BT Ref. far','BT Ref. velocity','BT Ref. correlation',...
+   'BT Ref. intensity','BT Ref. percent good','BT RSSI','BT Range MSB'};
+VARNAMES={'   ';'   ';'vel';'cor';'AGC';'PGd';'BTR';'BTWe';'BTWu';'BTWv';'BTWd';...
+      'BTc';'BTe';'BTp';...
+      'BTRmin';'BTRnear';'BTRfar';'BTRv';'BTRc';'BTRi';'BTRp';'BTRSSI';'BTrMSB'};
+BT_DATA = 0;	% default is ADCP without bottom tracking turned on
+BT_MODE = 1;	% if 0, no water reference layer used
 
 %
 % ------ Open the files & write global attributes -----
@@ -198,15 +232,9 @@ if cdf == -1,
 end
 
 if exist('settings','var') && isfield(settings,'Deployment_date') && isfield(settings,'Recovery_date')
-% the global attributes should be read into the settings file by
-% read_globalatts.m 
     Deployment_date = settings.Deployment_date;
     Recovery_date = settings.Recovery_date;
-    experiment=settings.experiment;
-    description=settings.description;
-    project=settings.project;
-    conventions=settings.conventions;
-	if isfield(settings,'Mooring_number'), 
+    if isfield(settings,'Mooring_number'),
         Mooring_number = settings.Mooring_number;
     else
         disp('No mooring number information provided')
@@ -214,13 +242,15 @@ if exist('settings','var') && isfield(settings,'Deployment_date') && isfield(set
     end
     if isfield(settings, 'water_depth'),
         water_depth = settings.water_depth;
+        water_depth_source = 'water_depth from user input by rdi2cdf';
     else
         disp('No nominal site water depth provided, using 0');
         water_depth = 0;
+        water_depth_source = 'water_depth information not provided to rdi2cdf';
     end
 else
-	% get the deployment dates
-	prompt  = {'Enter 4-digit mooring number:',...
+    % get the deployment dates
+    prompt  = {'Enter 4-digit mooring number:',...
       'Enter the deployment date (dd-mmm-yyyy):',...
       'Enter the recovery date (dd-mmm-yyyy):', ...
       'Enter the water depth (m):'};
@@ -231,7 +261,8 @@ else
 	Mooring_number = dlgresult{1};
 	Deployment_date = dlgresult{2};
 	Recovery_date = dlgresult{3};
-    water_depth = str2num(dlgresult{4});
+    water_depth = str2double(dlgresult{4});
+    water_depth_source = 'water_depth from user input by rdi2cdf';
 end 
 
 % enter the global attributes   
@@ -240,16 +271,13 @@ mexcdf('ATTPUT',cdf,'GLOBAL','CREATION_DATE','CHAR',11,date);
 mexcdf('ATTPUT',cdf,'GLOBAL','Mooring_number','CHAR',length(Mooring_number),Mooring_number);
 mexcdf('ATTPUT',cdf,'GLOBAL','Deployment_date','CHAR',length(Deployment_date),Deployment_date);
 mexcdf('ATTPUT',cdf,'GLOBAL','Recovery_date','CHAR',length(Recovery_date),Recovery_date);
-mexcdf('ATTPUT',cdf,'GLOBAL','EXPERIMENT','CHAR',length(experiment),experiment);
-mexcdf('ATTPUT',cdf,'GLOBAL','DESCRIPTION','CHAR',length(description),description);
-mexcdf('ATTPUT',cdf,'GLOBAL','PROJECT','CHAR',length(project),project);
-mexcdf('ATTPUT',cdf,'GLOBAL','Conventions','CHAR',length(conventions),conventions);
 
 mexcdf('ATTPUT',cdf,'GLOBAL','INST_TYPE','CHAR',19,'RD Instruments ADCP');
-junk = ['Converted to netCDF via MATLAB by rdi2cdf.m ', prog_ver];
+junk = sprintf('Converted to netCDF via MATLAB by %s %s\n', mfilename, rev_info);
 mexcdf('ATTPUT',cdf,'GLOBAL','History','CHAR',length(junk),junk);
 
 fid = fopen(infile,'r','ieee-le');
+ens_start = ftell(fid);
 %function [nb, nt, off] = rdhead(fid, verbose);
 %	Read the header data from a raw ADCP
 %	data file opened for binary reading.
@@ -286,23 +314,23 @@ notenum = 1;	% for general notes to file
 %	directly from Appendix B in the RDI Broadband 
 %	Phase III technical manual.
 
-if ~exist('verbose','var') | verbose == 0,
+if ~exist('verbose','var') || verbose == 0,
 	verbose = 1;	% verbose must be = 1 to get all header info
 end
 NFIELDS = 32;
 data=zeros(1,NFIELDS);
 fld=1;  
 
-if exist('select') ~= 1,
-	select = [];
-end
-
-if exist('settings')
+if exist('settings','var')
     ADCP_serial_number = settings.ADCP_serial_number;
-    xducer_offset = settings.xducer_offset;
+    transducer_offset = settings.transducer_offset;
     pred_accuracy = settings.pred_accuracy;
     slow_by = settings.slow_by;
-    magnetic = settings.magnetic;
+%     if ischar(settings.magnetic),
+%         magnetic = str2double(settings.magnetic);
+%     else
+%         magnetic = settings.magnetic;
+%     end
 else
 	% get the distance of the ADCP head from the bottom
 	% get the instrument serial number
@@ -316,11 +344,11 @@ else
 	title   = 'Input metadata from the mooring log';
 	lineNo  = 1;
 	dlgresult  = inputdlg(prompt,title,lineNo,def,'on');
-	ADCP_serial_number = str2num(dlgresult{1});	
-	xducer_offset = str2num(dlgresult{2});
-    pred_accuracy = str2num(dlgresult{3});
-    slow_by = str2num(dlgresult{4});
-	magnetic = str2num(dlgresult{5}); 
+	ADCP_serial_number = str2double(dlgresult{1});	
+	transducer_offset = str2double(dlgresult{2});
+    pred_accuracy = str2double(dlgresult{3});
+    slow_by = str2double(dlgresult{4});
+% 	magnetic = str2double(dlgresult{5}); 
 end 
 
 % make sure we're looking at the beginning of
@@ -328,7 +356,7 @@ end
 data(fld)=fread(fid,1,'ushort');
 if(data(fld)~=0),
 	disp('Fixed Leader ID not found');
-	data=[];
+	status=-1;
 	return;
 end
 fld=fld+1;
@@ -414,7 +442,10 @@ end
 mexcdf('ATTPUT',cdf,'GLOBAL','simulated_data','LONG',1,data(fld));
 fld=fld+1;
 % undefined
-data(fld)=fread(fid,1,'uchar');	fld=fld+1;
+data(fld)=fread(fid,1,'uchar');	
+if verbose, disp(sprintf('time period between sound pulses.:  %d',data(fld))); end
+mexcdf('ATTPUT',cdf,'GLOBAL','lag_length','LONG',1,data(fld));
+fld=fld+1;
 % number of beams
 data(fld)=fread(fid,1,'uchar');	
 if verbose, disp(sprintf('Number of beams used to calculate velocity data:  %d',data(fld))); end
@@ -430,7 +461,6 @@ fld=fld+1;
 data(fld)=fread(fid,1,'ushort');
 if verbose, disp(sprintf('Pings per ensemble %d',data(fld))); end;
 mexcdf('ATTPUT',cdf,'GLOBAL','pings_per_ensemble','LONG',1,data(fld));
-npings = data(fld);
 fld=fld+1;
 % depth cell length in cm
 data(fld)=fread(fid,1,'ushort');
@@ -471,7 +501,7 @@ fld=fld+1;
 
 % Error velocity threshold (WE)
 data(fld)=fread(fid,1,'ushort');
-if verbose, disp(sprintf('Minimum and Maximum Error Velocity values permitted %d mm/s',data(fld))); end
+if verbose, disp(sprintf('Minimum and Maximum Error Velocity values permitted %d mm s-1',data(fld))); end
 mexcdf('ATTPUT',cdf,'GLOBAL','error_velocity_threshold','LONG',1,data(fld));
 fld=fld+1;
 
@@ -482,7 +512,7 @@ data(fld)=fread(fid,1,'uchar');
 fld=fld+1;
 data(fld)=fread(fid,1,'uchar');
 tp=[data(fld-2),data(fld-1),data(fld)];  %added by JMC
-TP = str2num(sprintf('%d.%d',(tp(1)*60 + tp(2)),tp(3)));
+TP = str2double(sprintf('%d.%d',(tp(1)*60 + tp(2)),tp(3)));
 
 if verbose, disp(sprintf('Time between ping groups %d', TP)); end
 mexcdf('ATTPUT',cdf,'GLOBAL','time_between_ping_groups','FLOAT',1,...
@@ -540,25 +570,25 @@ if verbose,
    b(9-length(dec2bin(data(fld))):8)=dec2bin(data(fld));
    b=char(b);
 	if b(2) == '1',disp('  Sound speed computed from ED, ES & ET');
-		mexcdf('ATTPUT',cdf,'GLOBAL','Sound_speed_computed_from_ED_ES_ET','LONG',1,data(fld));
+		mexcdf('ATTPUT',cdf,'GLOBAL','Sound_speed_computed_from_ED_ES_ET','CHAR',3,'YES');
 	end
 	if b(3) == '1', disp('  ED taken from depth sensor');
-		mexcdf('ATTPUT',cdf,'GLOBAL','ED_taken_from_depth_sensor','LONG',1,data(fld));
+		mexcdf('ATTPUT',cdf,'GLOBAL','ED_taken_from_depth_sensor','CHAR',3,'YES');
 	end	
-	if b(4) == '1', disp('  EH taken from xducer heading sensor');
-		mexcdf('ATTPUT',cdf,'GLOBAL','EH_taken_from_xducer_heading_sensor','LONG',1,data(fld));
+	if b(4) == '1', disp('  EH taken from transducer heading sensor');
+		mexcdf('ATTPUT',cdf,'GLOBAL','EH_taken_from_transducer_heading_sensor','CHAR',3,'YES');
 	end	
-	if b(5) == '1', disp('  EP taken from xducer pitch sensor');	
-		mexcdf('ATTPUT',cdf,'GLOBAL','EP_taken_from_xducer_pitch_sensor','LONG',1,data(fld));
+	if b(5) == '1', disp('  EP taken from transducer pitch sensor');	
+		mexcdf('ATTPUT',cdf,'GLOBAL','EP_taken_from_transducer_pitch_sensor','CHAR',3,'YES');
 	end	
-	if b(6) == '1', disp('  ER taken from xducer roll sensor');	
-		mexcdf('ATTPUT',cdf,'GLOBAL','ER_taken_from_xducer_roll_sensor','LONG',1,data(fld));
+	if b(6) == '1', disp('  ER taken from transducer roll sensor');	
+		mexcdf('ATTPUT',cdf,'GLOBAL','ER_taken_from_transducer_roll_sensor','CHAR',3,'YES');
 	end	
 	if b(7) == '1', disp('  ES derived from conductivity sensor');	
-		mexcdf('ATTPUT',cdf,'GLOBAL','ES_derived_from_conductivity_sensor','LONG',1,data(fld));
+		mexcdf('ATTPUT',cdf,'GLOBAL','ES_derived_from_conductivity_sensor','CHAR',3,'YES');
 	end	
 	if b(8) == '1', disp('  ET taken from temperature sensor');
-		mexcdf('ATTPUT',cdf,'GLOBAL','ET_taken_from_temperature_sensor','LONG',1,data(fld));
+		mexcdf('ATTPUT',cdf,'GLOBAL','ET_taken_from_temperature_sensor','CHAR',3,'YES');
 	end	
 end
 fld=fld+1;
@@ -572,27 +602,27 @@ if verbose,
    b=char(b);
 	if b(3) == '1', disp('	depth sensor installed'); 
 		mexcdf('ATTPUT',cdf,'GLOBAL','depth_sensor','CHAR',3,'YES');
-    else, mexcdf('ATTPUT',cdf,'GLOBAL','depth_sensor','CHAR',2,'NO');
+    else mexcdf('ATTPUT',cdf,'GLOBAL','depth_sensor','CHAR',2,'NO');
 	end	
 	if b(4) == '1', disp('	heading sensor installed');  
 		mexcdf('ATTPUT',cdf,'GLOBAL','heading_sensor','CHAR',3,'YES');
-    else, mexcdf('ATTPUT',cdf,'GLOBAL','heading_sensor','CHAR',2,'NO');
+    else mexcdf('ATTPUT',cdf,'GLOBAL','heading_sensor','CHAR',2,'NO');
 	end	
 	if b(5) == '1', disp('	pitch sensor installed');  
 		mexcdf('ATTPUT',cdf,'GLOBAL','pitch_sensor','CHAR',3,'YES');
-    else, mexcdf('ATTPUT',cdf,'GLOBAL','pitch_sensor','CHAR',2,'NO');
+    else mexcdf('ATTPUT',cdf,'GLOBAL','pitch_sensor','CHAR',2,'NO');
 	end	
 	if b(6) == '1', disp('	roll sensor installed');  
 		mexcdf('ATTPUT',cdf,'GLOBAL','roll_sensor','CHAR',3,'YES');
-    else, mexcdf('ATTPUT',cdf,'GLOBAL','roll_sensor','CHAR',2,'NO');
+    else mexcdf('ATTPUT',cdf,'GLOBAL','roll_sensor','CHAR',2,'NO');
 	end	
 	if b(7) == '1', disp('	conductivity sensor installed');  
 		mexcdf('ATTPUT',cdf,'GLOBAL','conductivity_sensor','CHAR',3,'YES');
-    else, mexcdf('ATTPUT',cdf,'GLOBAL','conductivity_sensor','CHAR',2,'NO');
+    else mexcdf('ATTPUT',cdf,'GLOBAL','conductivity_sensor','CHAR',2,'NO');
 	end	
 	if b(8) == '1', disp('	temperature sensor installed');  
 		mexcdf('ATTPUT',cdf,'GLOBAL','temperature_sensor','CHAR',3,'YES');
-    else, mexcdf('ATTPUT',cdf,'GLOBAL','temperature_sensor','CHAR',2,'NO');
+    else mexcdf('ATTPUT',cdf,'GLOBAL','temperature_sensor','CHAR',2,'NO');
 	end	
 end
 fld=fld+1;
@@ -627,13 +657,65 @@ fld=fld+1;
 data(fld)=fread(fid,1,'uchar');
 fld=fld+1;
 % transmit lag distance
+% This field, determined mainly by the setting of the WMcommand,
+% contains the distance between pulse repetitions.
+% Scaling: LSD = 1 centimeter; Range = 0 to 65535 centimeters
 data(fld)=fread(fid,1,'ushort');
 if verbose, disp(sprintf('Transmit lag distance %d',data(fld))); end
 mexcdf('ATTPUT',cdf,'GLOBAL','transmit_lag_distance','LONG',1,data(fld));
+mcnote(cdf,'GLOBAL','transmit_lag_distance units are cm',notenum);	
+notenum=notenum+1;
 mexcdf('ATTPUT',cdf,'GLOBAL','ADCP_serial_number','LONG',1,ADCP_serial_number);
 
 % save the rest of the data for later
 fleader = data;
+
+% now see if there is bottom tracking data in this file.
+if nt>6,	% bottom tracking is usually data type 7
+    % now we must put the bottom tracking settings into the netCDF file
+    pos=ftell(fid);
+    % skip to the location of the next data type,
+    if fseek(fid, ens_start+offsets(7)-pos, 'cof') >= 0,
+        % mark for desired data to get for netCDF GLOBAL aatributes
+        flags = zeros(1,59);
+        flags(2)=1;	% number of BT pings averaged together per ensemble
+        flags(3)=1; % BT reaquire delay
+        flags(4)=1; % min correlation magnitude
+        flags(5)=1; % min evaluation amplitude
+        flags(6)=1; % min percent good
+        flags(7)=1; % BT mode
+        flags(8)=1; % BT max error velocity
+        flags(50)=1; % Maximum tracking depth
+        flags(55)=1; % Shallow water gain level
+        % get the data
+        junk = rdbtadcp(fid, 0, flags);
+        if ~isempty(junk),
+            BT_DATA = 1;  % we do indeed have bottom track data!
+            % write netCDF GLOBAL attributes
+            mexcdf('ATTPUT',cdf,'GLOBAL','BT_pings_per_ensemble','LONG',1,junk(1));
+            if verbose, disp(sprintf('BT pings per ensemble %d',junk(1))); end
+            mexcdf('ATTPUT',cdf,'GLOBAL','BT_reaquire_delay','LONG',1,junk(2));
+            if verbose, disp(sprintf('BT reaqure delay %d',junk(2))); end
+            mexcdf('ATTPUT',cdf,'GLOBAL','BT_min_corr_mag','LONG',1,junk(3));
+            if verbose, disp(sprintf('BT min correlation delay %d',junk(3))); end
+            mexcdf('ATTPUT',cdf,'GLOBAL','BT_min_eval_mag','LONG',1,junk(4));
+            if verbose, disp(sprintf('BT min evaluation magnitude %d',junk(4))); end
+            mexcdf('ATTPUT',cdf,'GLOBAL','BT_min_percent_good','LONG',1,junk(5));
+            if verbose, disp(sprintf('BT min percent good %d',junk(5))); end
+            mexcdf('ATTPUT',cdf,'GLOBAL','BT_mode','LONG',1,junk(6));
+            if verbose, disp(sprintf('BT mode %d',junk(6))); end
+            BT_MODE=junk(6); % water reference was used if BM (BT_MODE) is set to 0
+            mexcdf('ATTPUT',cdf,'GLOBAL','BT_max_err_vel','LONG',1,junk(7));
+            if verbose, disp(sprintf('BT max error velocity %d',junk(7))); end
+            mexcdf('ATTPUT',cdf,'GLOBAL','BT_max_tracking_depth','LONG',1,junk(8));
+            if verbose, disp(sprintf('BT max tracking depth %d',junk(8))); end
+            mexcdf('ATTPUT',cdf,'GLOBAL','BT_shallow_water_gain','LONG',1,junk(9));
+            if verbose, disp(sprintf('BT shallow water gain %d',junk(9))); end
+        end
+    end
+
+end
+
 disp('-----------')
 %
 % ------ Set up the variables -----
@@ -652,17 +734,24 @@ nens = ceil((infilesize-LEADERSIZE)/(nbytes+CHECKSUMSIZE));
 disp(sprintf('%d ensembles estimated from file size',nens))
 
 % dimensions
-ensid=mexcdf('DIMDEF',cdf,'ensemble','NC_UNLIMITED');
+mexcdf('DIMDEF',cdf,'ensemble','NC_UNLIMITED'); % record dim, ID = 0
 binid=mexcdf('DIMDEF',cdf,'bin',nbins);
 
 % variables
 % 
-mexcdf('VARDEF',cdf,'D','FLOAT',1,[binid]);
+mexcdf('VARDEF',cdf,'D','FLOAT',1,binid);
 mexcdf('ATTPUT',cdf,'D','units','CHAR',1,'m');
 mexcdf('ATTPUT',cdf,'D','long_name','CHAR',9,'DEPTH (m)');
 mexcdf('ATTPUT',cdf,'D','_FillValue','FLOAT',1,1e35);
 % note, netcdf will not handle leading _
 mexcdf('ATTPUT',cdf,'D','epic_code','LONG',1,3);
+
+mexcdf('VARDEF',cdf,'ensemble','FLOAT',1,0);
+mexcdf('ATTPUT',cdf,'ensemble','units','CHAR',5,'count');
+mexcdf('ATTPUT',cdf,'ensemble','long_name','CHAR',16,'ensemble (count)');
+mexcdf('ATTPUT',cdf,'ensemble','_FillValue','FLOAT',1,1e35);
+% note, netcdf will not handle leading _
+mexcdf('ATTPUT',cdf,'ensemble','epic_code','LONG',1,0);
 
 bin1=fleader(26)/100;
 mexcdf('ATTPUT',cdf,'D','center_first_bin','FLOAT',1,bin1);
@@ -672,11 +761,18 @@ binsize=fleader(11)/100;
 mexcdf('ATTPUT',cdf,'D','bin_size','FLOAT',1,binsize);
 bincnt=nbins;
 mexcdf('ATTPUT',cdf,'D','bin_count','LONG',1,nbins);
-if ~exist('water_depth','var'), water_depth = 0; end
+if ~exist('water_depth','var'), 
+    water_depth = 0; 
+    water_depth_source = 'water_depth information not provided to rdi2cdf';
+end
 mexcdf('ATTPUT',cdf,'D','water_depth','FLOAT',1,water_depth);
-%xducer_offset = 0;
-mexcdf('ATTPUT',cdf,'D','xducer_offset_from_bottom','FLOAT',1,xducer_offset);
+mexcdf('ATTPUT',cdf,'D','water_depth_source','CHAR',length(water_depth_source),water_depth_source);
+% water depth should get updated by trimbins' surface detect/pressure process
+%transducer_offset = 0;
+mexcdf('ATTPUT',cdf,'D','transducer_offset_from_bottom','FLOAT',1,transducer_offset);
 
+% TODO - the name depths here really indicates a range relative to the head
+% do we want to change this terminology?
 switch orientation  %Added 10-Jan-2003
 case 'up'
     mcnote(cdf,'D','bin depths are relative to the seabed',notenum);
@@ -684,10 +780,10 @@ case 'up'
     % compute bin locations
     depths = bin1:binsize:(((bincnt-1)*binsize)+bin1);
     % adjust for ADCP position and save depths for later
-    depths = depths+xducer_offset;
+    depths = depths+transducer_offset;
 case 'down'
      mcnote(cdf,'D','bin depths are relative to the transducer head',notenum);
-     notenum=notenum;
+     notenum=notenum+1;
     % compute bin locations
     depths = bin1:binsize:(((bincnt-1)*binsize)+bin1);
     depths = depths * -1;
@@ -712,17 +808,18 @@ mexcdf('ATTPUT',cdf,'Rec','valid_min','LONG',1,0);
 %
 mexcdf('VARDEF',cdf,'sv','LONG',1,0);
 mexcdf('ATTPUT',cdf,'sv','units','CHAR',5,'m s-1');
-mexcdf('ATTPUT',cdf,'sv','long_name','CHAR',20,'sound velocity (m/s)');
+mexcdf('ATTPUT',cdf,'sv','long_name','CHAR',20,'sound velocity (m s-1)');
 mexcdf('ATTPUT',cdf,'sv','_FillValue','LONG',1,1e35);
 mexcdf('ATTPUT',cdf,'sv','epic_code','LONG',1,80);
 mexcdf('ATTPUT',cdf,'sv','valid_range','LONG',2,[1400 1600]);
 %
 for i=1:nbeams,
-    varname = [VARNAMES(VELOCITY,:),int2str(i)];
+    %varname = [VARNAMES(VELOCITY,:),int2str(i)];
+    varname = sprintf('%s%1d',VARNAMES{VELOCITY},i);
     mexcdf('VARDEF',cdf,varname,'FLOAT',2,[0 1]);
     mexcdf('ATTPUT',cdf,varname,'units','CHAR',6,'mm s-1');
     if ~transform,	% this EPIC code is for BEAM coordinates only
-        buf=sprintf('Beam %1i velocity, mm/s',i);
+        buf=sprintf('Beam %1i velocity, mm s-1',i);
         mexcdf('ATTPUT',cdf,varname,'long_name','CHAR',length(buf),buf);
         mexcdf('ATTPUT',cdf,varname,'epic_code','LONG',1,1279+i);
     end
@@ -731,7 +828,8 @@ for i=1:nbeams,
 end
 %
 for i=1:nbeams,
-	varname = [VARNAMES(CORRELATION,:),int2str(i)];
+	%varname = [VARNAMES(CORRELATION,:),int2str(i)];
+    varname = sprintf('%s%1d',VARNAMES{CORRELATION},i);
 	mexcdf('VARDEF',cdf,varname,'FLOAT',2,[0 1]);
 	mexcdf('ATTPUT',cdf,varname,'units','CHAR',6,'counts');
 	buf=sprintf('Beam %1i correlation',i);
@@ -742,7 +840,8 @@ for i=1:nbeams,
 end	
 %
 for i=1:nbeams,
-	varname = [VARNAMES(INTENSITY,:),int2str(i)];
+	%varname = [VARNAMES(INTENSITY,:),int2str(i)];
+    varname = sprintf('%s%1d',VARNAMES{INTENSITY},i);
 	mexcdf('VARDEF',cdf,varname,'FLOAT',2,[0 1]);
 	mexcdf('ATTPUT',cdf,varname,'units','CHAR',6,'counts');
 	buf=sprintf('Echo Intensity (AGC) Beam %1i',i);
@@ -756,7 +855,8 @@ for i=1:nbeams,
 end	
 %
 for i=1:nbeams,
-	varname = [VARNAMES(GOOD,:),int2str(i)];
+	%varname = [VARNAMES(GOOD,:),int2str(i)];
+    varname = sprintf('%s%1d',VARNAMES{GOOD},i);
 	mexcdf('VARDEF',cdf,varname,'FLOAT',2,[0 1]);
 	mexcdf('ATTPUT',cdf,varname,'units','CHAR',6,'counts');
 	buf=sprintf('Percent Good Beam %1i',i);
@@ -793,7 +893,7 @@ if ~isequal(magnetic,0), % user wants a correction, possibly in addition to that
 else
     mcnote(cdf,'Hdg','no heading correction was input by the user and applied to Hdg by rdi2cdf',notenum);
 end
-notenum=notenum+1;
+%notenum=notenum+1;
 
 mexcdf('VARDEF',cdf,'Ptch','FLOAT',1,0);
 mexcdf('ATTPUT',cdf,'Ptch','units','CHAR',7,'degrees');
@@ -808,6 +908,20 @@ mexcdf('ATTPUT',cdf,'Roll','long_name','CHAR',9,'INST Roll');
 mexcdf('ATTPUT',cdf,'Roll','epic_code','LONG',1,1217);
 mexcdf('ATTPUT',cdf,'Roll','_FillValue','FLOAT',1,1e35);
 mexcdf('ATTPUT',cdf,'Roll','valid_range','FLOAT',2,[-20 20]);
+
+for i=1:3,
+    varnames = {'HdgSTD','PtchSTD','RollSTD'};
+    Olongnames = {'Heading Standard Deviation','Pitch Standard Deviation','Roll Standard Deviation'};
+    mexcdf('VARDEF',cdf,varnames{i},'FLOAT',1,0);
+    mexcdf('ATTPUT',cdf,varnames{i},'units','CHAR',7,'degrees');
+    mexcdf('ATTPUT',cdf,varnames{i},'long_name','CHAR',length(Olongnames{i}),Olongnames{i});
+    mexcdf('ATTPUT',cdf,varnames{i},'_FillValue','FLOAT',1,1e35);
+    if i==1,
+        mexcdf('ATTPUT',cdf,varnames{i},'valid_range','FLOAT',2,[0 180]);
+    else
+        mexcdf('ATTPUT',cdf,varnames{i},'valid_range','FLOAT',2,[0 20]);
+    end
+end
 %
 mexcdf('VARDEF',cdf,'Tx','FLOAT',1,0);
 mexcdf('ATTPUT',cdf,'Tx','units','CHAR',7,'degrees');
@@ -846,20 +960,198 @@ mexcdf('ATTPUT',cdf,'VDC','units','CHAR',5,'volts');
 mexcdf('ATTPUT',cdf,'VDC','long_name','CHAR',3,'VDC');
 mexcdf('ATTPUT',cdf,'VDC','_FillValue','LONG',1,1e35);
 
+for i=1:4,
+    varname = ['EWD',int2str(i)];
+    mexcdf('VARDEF',cdf,varname,'LONG',1,0);
+    mexcdf('ATTPUT',cdf,varname,'units','CHAR',11,'binary flag');
+    mexcdf('ATTPUT',cdf,varname,'long_name','CHAR',17,'Error Status Word');
+    mexcdf('ATTPUT',cdf,varname,'_FillValue','LONG',1,1e35);
+end
+
 % make this conditional on presence of pressure sensor MM 1/22/07
-[val, status] = mexcdf('ATTGET',cdf,'GLOBAL','depth_sensor');
+val = mexcdf('ATTGET',cdf,'GLOBAL','depth_sensor');
 if strcmp(val,'YES'),
     depth_sensor = 1;
     % Added 27-Feb-03
+    %   4:P  :PRESSURE (PASCALS)       :depth:Pa: :
     mexcdf('VARDEF',cdf,'Pressure','FLOAT',1,0);
     mexcdf('ATTPUT',cdf,'Pressure','units','CHAR',7,'pascals');
     mexcdf('ATTPUT',cdf,'Pressure','long_name','CHAR',24,'ADCP Transducer Pressure');
     mexcdf('ATTPUT',cdf,'Pressure','epic_code','LONG',1,4);
     mexcdf('ATTPUT',cdf,'Pressure','_FillValue','FLOAT',1,1e35);
     mexcdf('ATTPUT',cdf,'Pressure','valid_range','FLOAT',2,[0 4294967295]);
+    % added 25-sep-07 MM
+    mexcdf('VARDEF',cdf,'PressVar','FLOAT',1,0);
+    mexcdf('ATTPUT',cdf,'PressVar','units','CHAR',7,'pascals');
+    mexcdf('ATTPUT',cdf,'PressVar','long_name','CHAR',33,'ADCP Transducer Pressure Variance');
+    mexcdf('ATTPUT',cdf,'PressVar','epic_code','LONG',1,0);
+    mexcdf('ATTPUT',cdf,'PressVar','_FillValue','FLOAT',1,1e35);
+    mexcdf('ATTPUT',cdf,'PressVar','valid_range','FLOAT',2,[0 4294967295]);
 else
     depth_sensor = 0;
 end
+
+% deal with the bottom track data
+if BT_DATA,
+   % BT range
+   for i=1:nbeams,
+      varname = [VARNAMES{7},int2str(i)];
+      mexcdf('VARDEF',cdf,varname,'FLOAT',1,0);
+      mexcdf('ATTPUT',cdf,varname,'units','CHAR',1,'m');
+      buf=sprintf('%s %1i',longnames{7},i);
+      mexcdf('ATTPUT',cdf,varname,'long_name','CHAR',length(buf),buf);
+      mexcdf('ATTPUT',cdf,varname,'epic_code','LONG',1,1263+i);
+      mexcdf('ATTPUT',cdf,varname,'_FillValue','FLOAT',1,0);
+      mexcdf('ATTPUT',cdf,varname,'valid_range','FLOAT',2,[0 655.35]);
+   end	
+   % BT velocity
+   for i=1:nbeams,
+      if transform==3,	% this EPIC code is for EARTH coordinates in cm/s only
+         varname = [VARNAMES{7+i}];
+         mexcdf('VARDEF',cdf,varname,'FLOAT',1,0);
+         mexcdf('ATTPUT',cdf,varname,'units','CHAR',6,'mm s-1');
+         % TODO the slash in mm/s is causing The argument for the %s format
+         % specifier must be of type char (a string).
+         buf=sprintf('%s%d, mm s-1',longnames{7+1},i);
+         mexcdf('ATTPUT',cdf,varname,'long_name','CHAR',length(buf),buf);
+         %EPICcodes=[1260, 1261, 1262, 1263]; % err, east, north, vert
+         % mm/s is not EPIC compliant
+         %mexcdf('ATTPUT',cdf,varname,'epic_code','LONG',1,EPICcodes(i));
+      else
+         varname = ['BTV',int2str(i)];
+         mexcdf('VARDEF',cdf,varname,'FLOAT',1,0);
+         buf=sprintf('BT velocity, mm s-1 %1i',i);
+         mexcdf('ATTPUT',cdf,varname,'long_name','CHAR',length(buf),buf);
+         mexcdf('ATTPUT',cdf,varname,'units','CHAR',6,'mm s-1');
+      end
+      mexcdf('ATTPUT',cdf,varname,'_FillValue','FLOAT',1,32768);
+      mexcdf('ATTPUT',cdf,varname,'valid_range','FLOAT',2,[-32768 32767]);
+   end
+   % BT correlation
+   for i=1:nbeams,
+      varname = [VARNAMES{12},int2str(i)];
+      mexcdf('VARDEF',cdf,varname,'FLOAT',1,0);
+      mexcdf('ATTPUT',cdf,varname,'units','CHAR',6,'counts');
+      buf=sprintf('%s %1i',longnames{12},i);
+      mexcdf('ATTPUT',cdf,varname,'long_name','CHAR',length(buf),buf);
+      %no code yet mexcdf('ATTPUT',cdf,varname,'epic_code','LONG',1,1263+i);
+      mexcdf('ATTPUT',cdf,varname,'_FillValue','FLOAT',1,1e35);
+      mexcdf('ATTPUT',cdf,varname,'valid_range','FLOAT',2,[0 255]);
+   end	
+   % BT evaluation amplitude
+   for i=1:nbeams,
+      varname = [VARNAMES{13},int2str(i)];
+      mexcdf('VARDEF',cdf,varname,'FLOAT',1,0);
+      mexcdf('ATTPUT',cdf,varname,'units','CHAR',6,'counts');
+      buf=sprintf('%s %1i',longnames{13},i);
+      mexcdf('ATTPUT',cdf,varname,'long_name','CHAR',length(buf),buf);
+      %no code yet mexcdf('ATTPUT',cdf,varname,'epic_code','LONG',1,1263+i);
+      mexcdf('ATTPUT',cdf,varname,'_FillValue','FLOAT',1,1e35);
+      mexcdf('ATTPUT',cdf,varname,'valid_range','FLOAT',2,[0 255]);
+   end	
+   % BT percent good
+   for i=1:nbeams,
+      varname = [VARNAMES{14},int2str(i)];
+      mexcdf('VARDEF',cdf,varname,'FLOAT',1,0);
+      mexcdf('ATTPUT',cdf,varname,'units','CHAR',7,'percent');
+      buf=sprintf('%s %1i',longnames{14},i);
+      mexcdf('ATTPUT',cdf,varname,'long_name','CHAR',length(buf),buf);
+      mexcdf('ATTPUT',cdf,varname,'epic_code','LONG',1,1269+i);
+      mexcdf('ATTPUT',cdf,varname,'_FillValue','FLOAT',1,1e35);
+      mexcdf('ATTPUT',cdf,varname,'valid_range','FLOAT',2,[0 100]);
+   end	
+   if BT_MODE==0, % water reference layer was used
+      % BT ref layer min
+      varname = [VARNAMES{15},int2str(i)];
+      mexcdf('VARDEF',cdf,varname,'FLOAT',1,0);
+      mexcdf('ATTPUT',cdf,varname,'units','CHAR',2,'dm');
+      buf=sprintf('%s %1i',longnames{15},i);
+      mexcdf('ATTPUT',cdf,varname,'long_name','CHAR',length(buf),buf);
+      mexcdf('ATTPUT',cdf,varname,'_FillValue','FLOAT',1,1e35);
+      mexcdf('ATTPUT',cdf,varname,'valid_range','FLOAT',2,[0 999]);
+      % BT ref layer near
+      varname = [VARNAMES{16},int2str(i)];
+      mexcdf('VARDEF',cdf,varname,'FLOAT',1,0);
+      mexcdf('ATTPUT',cdf,varname,'units','CHAR',2,'dm');
+      buf=sprintf('%s %1i',longnames{16},i);
+      mexcdf('ATTPUT',cdf,varname,'long_name','CHAR',length(buf),buf);
+      mexcdf('ATTPUT',cdf,varname,'_FillValue','FLOAT',1,1e35);
+      mexcdf('ATTPUT',cdf,varname,'valid_range','FLOAT',2,[0 9999]);
+      % BT ref layer far
+      varname = [VARNAMES{17},int2str(i)];
+      mexcdf('VARDEF',cdf,varname,'FLOAT',1,0);
+      mexcdf('ATTPUT',cdf,varname,'units','CHAR',2,'dm');
+      buf=sprintf('%s %1i',longnames{17},i);
+      mexcdf('ATTPUT',cdf,varname,'long_name','CHAR',length(buf),buf);
+      mexcdf('ATTPUT',cdf,varname,'_FillValue','FLOAT',1,1e35);
+      mexcdf('ATTPUT',cdf,varname,'valid_range','FLOAT',2,[0 9999]);
+      % BT Ref. velocity
+      for i=1:nbeams,
+         varname = [VARNAMES{18},int2str(i)];
+         mexcdf('VARDEF',cdf,varname,'FLOAT',1,0);
+         buf=sprintf('%s %1i',longnames{18},i);
+         mexcdf('ATTPUT',cdf,varname,'long_name','CHAR',length(buf),buf);
+         mexcdf('ATTPUT',cdf,varname,'units','CHAR',6,'mm s-1');
+         mexcdf('ATTPUT',cdf,varname,'_FillValue','FLOAT',1,1e35);
+         mexcdf('ATTPUT',cdf,varname,'valid_range','FLOAT',2,[-32768 32767]);
+      end
+      % BT Ref. Layer correlation
+      for i=1:nbeams,
+         varname = [VARNAMES{19},int2str(i)];
+         mexcdf('VARDEF',cdf,varname,'FLOAT',1,0);
+         mexcdf('ATTPUT',cdf,varname,'units','CHAR',6,'counts');
+         buf=sprintf('%s %1i',longnames{19},i);
+         mexcdf('ATTPUT',cdf,varname,'long_name','CHAR',length(buf),buf);
+         %no code yet mexcdf('ATTPUT',cdf,varname,'epic_code','LONG',1,1263+i);
+         mexcdf('ATTPUT',cdf,varname,'_FillValue','FLOAT',1,1e35);
+         mexcdf('ATTPUT',cdf,varname,'valid_range','FLOAT',2,[0 255]);
+      end	
+      % BT Ref. Layer echo intensity
+      for i=1:nbeams,
+         varname = [VARNAMES{20},int2str(i)];
+         mexcdf('VARDEF',cdf,varname,'FLOAT',1,0);
+         mexcdf('ATTPUT',cdf,varname,'units','CHAR',6,'counts');
+         buf=sprintf('%s %1i',longnames{20},i);
+         mexcdf('ATTPUT',cdf,varname,'long_name','CHAR',length(buf),buf);
+         %no code yet mexcdf('ATTPUT',cdf,varname,'epic_code','LONG',1,1263+i);
+         mexcdf('ATTPUT',cdf,varname,'_FillValue','FLOAT',1,1e35);
+         mexcdf('ATTPUT',cdf,varname,'valid_range','FLOAT',2,[0 255]);
+      end	
+      % BT Ref. Layer percent good
+      for i=1:nbeams,
+         varname = [VARNAMES{21},int2str(i)];
+         mexcdf('VARDEF',cdf,varname,'FLOAT',1,0);
+         mexcdf('ATTPUT',cdf,varname,'units','CHAR',7,'percent');
+         buf=sprintf('%s %1i',longnames{21},i);
+         mexcdf('ATTPUT',cdf,varname,'long_name','CHAR',length(buf),buf);
+         mexcdf('ATTPUT',cdf,varname,'epic_code','LONG',1,1269+i);
+         mexcdf('ATTPUT',cdf,varname,'_FillValue','FLOAT',1,1e35);
+         mexcdf('ATTPUT',cdf,varname,'valid_range','FLOAT',2,[0 100]);
+      end	
+   end
+   % BT Receiver Signal Strength Indicator (RSSI)
+   for i=1:nbeams,
+      varname = [VARNAMES{22},int2str(i)];
+      mexcdf('VARDEF',cdf,varname,'FLOAT',1,0);
+      mexcdf('ATTPUT',cdf,varname,'units','CHAR',6,'counts');
+      buf=sprintf('%s %1i',longnames{22},i);
+      mexcdf('ATTPUT',cdf,varname,'long_name','CHAR',length(buf),buf);
+      %no code yet mexcdf('ATTPUT',cdf,varname,'epic_code','LONG',1,1263+i);
+      mexcdf('ATTPUT',cdf,varname,'_FillValue','FLOAT',1,1e35);
+      mexcdf('ATTPUT',cdf,varname,'valid_range','FLOAT',2,[0 255]);
+   end	
+   % BT Range MSB
+   for i=1:nbeams,
+      varname = [VARNAMES{23},int2str(i)];
+      mexcdf('VARDEF',cdf,varname,'FLOAT',1,0);
+      mexcdf('ATTPUT',cdf,varname,'units','CHAR',2,'cm');
+      buf=sprintf('%s %1i',longnames{23},i);
+      mexcdf('ATTPUT',cdf,varname,'long_name','CHAR',length(buf),buf);
+      %no code yet mexcdf('ATTPUT',cdf,varname,'epic_code','LONG',1,1263+i);
+      mexcdf('ATTPUT',cdf,varname,'_FillValue','FLOAT',1,1e35);
+      mexcdf('ATTPUT',cdf,varname,'valid_range','FLOAT',2,[65536 16777215]);
+   end	
+end % end of if BT_DATA
 
 mexcdf('ENDEF',cdf);  %line 848, no varputs before endef!!
 fclose(fid);	% close file to force a rewind
@@ -872,123 +1164,219 @@ fid = fopen(infile,'r','ieee-le');
 % load in the depths for each bin
 %status = mexcdf('VARPUT', cdfid, varid, start, count, value, autoscale)
 status=mexcdf('VARPUT',cdf,'D',0,nbins,depths);
-
-% mark for desired data and designate containers
-flags = zeros(1,39);   %%changed 27-Feb-03
-flags(2)=1;	% flag for ensemble number
-flags(3:9)=ones(1,7); % flag for time
-flags(12)=1; % speed of sound
-flags(14)=1; % heading
-flags(15)=1; % pitch
-flags(16)=1; % roll
-flags(18)=1; % temperature
-flags(25)=1; % xmit current
-flags(26)=1; % xmit voltage
-flags(27)=1; % DAC
-flags(29)=1; % VDD3
-flags(30)=1; % VDD1
-flags(31)=1; % VDC
-% FYI, no harm in reading empty pressure from the variable leader
-flags(38)=1; %pressure  %added 27-Feb-03   updated SDR
-i=0;
+idx=0;
 readidx=1;
 % define some more things
 time_greg=zeros(nens,6);
-if ~exist('minens','var') | isempty(minens),
+if ~exist('minens','var') || isempty(minens),
    minens = 1;
 elseif minens < 1,
    minens = 1;
 end
-if ~exist('maxens','var') | isempty(maxens),
-   maxens = nens;
-elseif maxens > nens,
+if ~exist('maxens','var') || isempty(maxens) || maxens > nens,
    maxens = nens;
 end
 
 while 1,
-	ens_start = ftell(fid);
-	if ens_start < 0, break; end
-if (readidx >= minens) & (readidx <= maxens),
-	% skip to the location of variable leader
-	if fseek(fid, offsets(2), 'cof') < 0, break; end
-	junk = rdvlead(fid, 0, flags);
-	if ~isempty(junk),
-		% sort and store
-		ensnum = junk(1);
-      mexcdf('VARPUT',cdf,'Rec',i,1,junk(1));
-      % fix the year, should work for the next 90 years...
-      if junk(2) > 90, 
-         junk(2)=junk(2)+1900;
-      else
-         junk(2)=junk(2)+2000;
-      end
-      time_greg(i+1,:) = [junk(2:6) junk(7)+junk(8)/100];
-      time_jul=julian([junk(2:6) junk(7)+junk(8)/100]);
-      mexcdf('VARPUT',cdf,'TIM',i,1,time_jul);
-      mexcdf('VARPUT',cdf,'sv',i,1,junk(9));
-      
-      %correct heading for magnetic declination
-      heading = junk(10)./100 + c_hdg;
-      mexcdf('VARPUT',cdf,'Hdg',i,1,heading);
-      mexcdf('VARPUT',cdf,'Ptch',i,1,junk(11)./100);
-      mexcdf('VARPUT',cdf,'Roll',i,1,junk(12)./100);
-      mexcdf('VARPUT',cdf,'Tx',i,1,junk(13)./100);
-      mexcdf('VARPUT',cdf,'xmitc',i,1,junk(14).*0.019);
-      mexcdf('VARPUT',cdf,'xmitv',i,1,junk(15).*0.556);
-      mexcdf('VARPUT',cdf,'dac',i,1,junk(16));
-      mexcdf('VARPUT',cdf,'VDD3',i,1,junk(17).*0.097);
-      mexcdf('VARPUT',cdf,'VDD1',i,1,junk(18).*0.032);
-      mexcdf('VARPUT',cdf,'VDC',i,1,junk(19).*0.307);
-      press = junk(20)*10;  
-      if depth_sensor, mexcdf('VARPUT',cdf,'Pressure',i,1,press);  end %%added 27-Feb-03
-	end
-	
-	% get the main data (vel, corr, etc)
-	junk=zeros(nbins,nbeams);
-	fill=ones(1,nbeams).*(1e35);
-	for type=3:6,
-		pos=ftell(fid);
-		% skip to the location of the next data type, 
-		if fseek(fid, ens_start+offsets(type)-pos, 'cof') < 0, 
-			break; 
-		end
-		if fread(fid,1,'int16') ~= rec_ids(type),
-			disp([longnames(type,:),' data ID not found'])
-		else
-			% read 'em
-			for j=1:nbins,
-				[dummy, n] = fread(fid,nbeams,read_types(type,:));
-				if n == nbeams, 
-					junk(j,:) = dummy'; 
-				else
-					junk(j,:) = fill;
-				end
-			end
-			% last minute massage
-			if type == VELOCITY,
-				% change the fill flag to be consistent
-				dummy = find(junk == -32768);
-				junk(dummy) = ones(size(dummy)).*(1e35);
-			end
-			% write 'em
-			for j=1:nbeams,
-				varname = [VARNAMES(type,:),int2str(j)];
-            mexcdf('VARPUT',cdf,varname,[i 0],[1 nbins],junk(:,j)');
-			end
-		end
-	end
-	i=i+1;
-end	
-readidx=readidx+1;
-	% jump to next ensemble
-	pos=ftell(fid);
-	nskip=nbytes-(pos-ens_start)+2;	% add 2 for checksum
-	if fseek(fid,nskip,'cof') < 0; break; end
-   if readidx<1000 & ~rem(readidx,100), 
-      disp(sprintf('%d ensembles read, %d converted in %d min',readidx-1,i,toc/60)), 
-   end
-	if readidx>1000 & ~rem(readidx,1000), disp(sprintf('%d ensembles read, %d converted in %d sec',readidx-1,i,toc)), end	
-	if readidx>maxens break; end
+    ens_start = ftell(fid);
+    if ens_start < 0, break; end
+    if (readidx >= minens) && (readidx <= maxens),
+        % skip to the location of variable leader
+        if fseek(fid, offsets(2), 'cof') < 0, break; end
+        vldata = rdvlead(fid, 0);
+        if ~isempty(vldata),
+            % sort and store
+            ensnum = vldata(2)+(65536.*(vldata(10)));
+            mexcdf('VARPUT',cdf,'Rec',idx,1,ensnum);
+            mexcdf('VARPUT',cdf,'ensemble',idx,1,ensnum); % make a coordinate dimension for ncbrowse
+            % fix the year, should work for the next 90 years...
+            if vldata(3) > 90,
+                vldata(3)=vldata(3)+1900;
+            else
+                vldata(3)=vldata(3)+2000;
+            end
+            time_greg(idx+1,:) = [vldata(3:7) vldata(8)+vldata(9)/100];
+            time_jul=julian([vldata(3:7) vldata(8)+vldata(9)/100]);
+            mexcdf('VARPUT',cdf,'TIM',idx,1,time_jul);
+            mexcdf('VARPUT',cdf,'sv',idx,1,vldata(12));
+
+            %correct heading for magnetic declination
+            heading = vldata(14)./100 + c_hdg;
+            if heading < 0, heading=360+heading; end
+            mexcdf('VARPUT',cdf,'Hdg',idx,1,heading);
+            mexcdf('VARPUT',cdf,'Ptch',idx,1,vldata(15)./100);
+            mexcdf('VARPUT',cdf,'Roll',idx,1,vldata(16)./100);
+            mexcdf('VARPUT',cdf,'Tx',idx,1,vldata(18)./100);
+            % skipping Minimum Pre-Pint Wait Time between ping groups
+            mexcdf('VARPUT',cdf,'HdgSTD',idx,1,vldata(22));
+            mexcdf('VARPUT',cdf,'PtchSTD',idx,1,vldata(23)./10);
+            mexcdf('VARPUT',cdf,'RollSTD',idx,1,vldata(24)./100);
+            mexcdf('VARPUT',cdf,'xmitc',idx,1,vldata(25).*0.019);
+            mexcdf('VARPUT',cdf,'xmitv',idx,1,vldata(26).*0.556);
+            mexcdf('VARPUT',cdf,'dac',idx,1,vldata(27));
+            mexcdf('VARPUT',cdf,'VDD3',idx,1,vldata(28).*0.097);
+            mexcdf('VARPUT',cdf,'VDD1',idx,1,vldata(29).*0.032);
+            mexcdf('VARPUT',cdf,'VDC',idx,1,vldata(30).*0.307);
+            % error status word
+            mexcdf('VARPUT',cdf,'EWD1',idx,1,vldata(33));
+            mexcdf('VARPUT',cdf,'EWD2',idx,1,vldata(34));
+            mexcdf('VARPUT',cdf,'EWD3',idx,1,vldata(35));
+            mexcdf('VARPUT',cdf,'EWD4',idx,1,vldata(36));
+            
+            
+            if depth_sensor, 
+                % raw RDI binary stored pressure in deca-pascals
+                % EPIC code used calls for pascals
+                % deca-pascal * 10 = pascal
+                % checked 7-feb-2008 (MM)
+                press = vldata(38)+vldata(39).*65536;
+                mexcdf('VARPUT',cdf,'Pressure',idx,1,press.*10); 
+                press = vldata(40)+vldata(41).*65536;
+                mexcdf('VARPUT',cdf,'PressVar',idx,1,press.*10); 
+            end %%added 27-Feb-03
+        end
+
+        % get the main data (vel, corr, etc)
+        junk=zeros(nbins,nbeams);
+        fill=ones(1,nbeams).*(1e35);
+        for type=3:6,
+            pos=ftell(fid);
+            % skip to the location of the next data type,
+            if fseek(fid, ens_start+offsets(type)-pos, 'cof') < 0,
+                break;
+            end
+            if type > length(longnames), keyboard; end
+            if fread(fid,1,'int16') ~= rec_ids(type),
+                disp([longnames{type},' data ID not found'])
+            else
+                % read 'em
+                for j=1:nbins,
+                    [dummy, n] = fread(fid,nbeams,read_types(type,:));
+                    if n == nbeams,
+                        junk(j,:) = dummy';
+                    else
+                        junk(j,:) = fill;
+                    end
+                end
+                % last minute massage
+                if type == VELOCITY,
+                    % change the fill flag to be consistent
+                    dummy = find(junk == -32768);
+                    junk(dummy) = ones(size(dummy)).*(1e35);
+                end
+                % write 'em
+                for j=1:nbeams,
+                    %varname = [VARNAMES(type,:),int2str(j)];
+                    varname = [VARNAMES{type},int2str(j)];
+                    mexcdf('VARPUT',cdf,varname,[idx 0],[1 nbins],junk(:,j)');
+                end
+            end
+        end
+
+        if BT_DATA,
+            % get the bottom track data
+            %junk=zeros(nbins,nbeams);
+            %fill=ones(1,nbeams).*(1e35);
+            type=7; %Bottom track is data type 7
+            pos=ftell(fid);
+            % skip to the location of the next data type,
+            if fseek(fid, ens_start+offsets(type)-pos, 'cof') < 0,
+                break;
+            end
+            % select what we want
+            btflags=ones(1,59); % just take it all, weed it out below
+            data = rdbtadcp(fid, 0, btflags);
+            if ~isempty(data),
+                % sort and store
+                % skipping to field #11 (1-10 are GLOBAL metadata)
+                % BT range convert from RDI cm to EPIC m
+                for j=1:nbeams,
+                    varname = [VARNAMES{7},int2str(j)];
+                    mexcdf('VARPUT',cdf,varname,idx,1,(data(10+j)./100));
+                end
+                % BT velocity
+                for j=1:nbeams,
+                    if transform==3,	% this EPIC code is for EARTH coordinates only
+                        varname = [VARNAMES{7+j}];
+                    else
+                        varname = ['BTV',int2str(j)];
+                    end
+                    mexcdf('VARPUT',cdf,varname,idx,1,data(14+j));
+                end
+                % BT correlation
+                for j=1:nbeams,
+                    varname = [VARNAMES{12},int2str(j)];
+                    mexcdf('VARPUT',cdf,varname,idx,1,data(18+j));
+                end
+                % BT evaluation
+                for j=1:nbeams,
+                    varname = [VARNAMES{13},int2str(j)];
+                    mexcdf('VARPUT',cdf,varname,idx,1,data(22+j));
+                end
+                % BT percent good
+                for j=1:nbeams,
+                    varname = [VARNAMES{14},int2str(j)];
+                    mexcdf('VARPUT',cdf,varname,idx,1,data(26+j));
+                end
+                if BT_MODE==0,	% handle the reference layer data
+                    % BT Ref. Layer Min
+                    mexcdf('VARPUT',cdf,VARNAMES{15},idx,1,data(31));
+                    % BT Ref. Layer Near
+                    mexcdf('VARPUT',cdf,VARNAMES{16},idx,1,data(32));
+                    % BT Ref. Layer Far
+                    mexcdf('VARPUT',cdf,VARNAMES{17},idx,1,data(33));
+                    % BT Ref. Layer Velocity
+                    for j=1:nbeams,
+                        varname = [VARNAMES{18},int2str(j)];
+                        mexcdf('VARPUT',cdf,varname,idx,1,data(33+j));
+                    end
+                    % BT Ref. Layer correlation
+                    for j=1:nbeams,
+                        varname = [VARNAMES{19},int2str(j)];
+                        mexcdf('VARPUT',cdf,varname,idx,1,data(37+j));
+                    end
+                    % BT Ref. Layer Intensity
+                    for j=1:nbeams,
+                        varname = [VARNAMES{20},int2str(j)];
+                        mexcdf('VARPUT',cdf,varname,idx,1,data(41+j));
+                    end
+                    % BT Ref. Layer percent good
+                    for j=1:nbeams,
+                        varname = [VARNAMES{21},int2str(j)];
+                        mexcdf('VARPUT',cdf,varname,idx,1,data(45+j));
+                    end
+                end % if BT_MODE==0
+                % skipping field #50 which is GLOBAL metadata (BX/BT max depth)
+                % BT RSSI
+                for j=1:nbeams,
+                    varname = [VARNAMES{22},int2str(j)];
+                    mexcdf('VARPUT',cdf,varname,idx,1,data(50+j));
+                end
+                % skipping field #55 which is GLOBAL metadata (GAIN)
+                % BT Range MSB
+                for j=1:nbeams,
+                    varname = [VARNAMES{23},int2str(j)];
+                    mexcdf('VARPUT',cdf,varname,idx,1,data(55+j));
+                end
+            end % end if ~ienmpty(data)
+        end % end if BT_DATA
+
+        idx=idx+1;
+    end
+    readidx=readidx+1;
+    % jump to next ensemble
+    pos=ftell(fid);
+    nskip=nbytes-(pos-ens_start)+2;	% add 2 for checksum
+    if fseek(fid,nskip,'cof') < 0; 
+        break; 
+    end
+    if readidx<1000 && ~rem(readidx,100),
+        disp(sprintf('%d ensembles read, %d converted in %d min',readidx-1,idx,toc/60)),
+    end
+    if readidx>1000 && ~rem(readidx,1000), 
+        disp(sprintf('%d ensembles read, %d converted in %d sec',readidx-1,idx,toc)), 
+    end
+    if readidx>maxens, break; end
 end
 
 fclose(fid);

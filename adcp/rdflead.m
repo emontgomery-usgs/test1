@@ -1,4 +1,4 @@
-function data = rdflead(fid, verbose, select);
+function data = rdflead(fid, verbose, select)
 % rdflead.m reads the fixed leader data from an RDI ADCP binary data file
 %
 % function data = rdflead(fid, verbose, select);
@@ -21,8 +21,8 @@ function data = rdflead(fid, verbose, select);
 % Use of this program is described in:
 %
 % Acoustic Doppler Current Profiler Data Processing System Manual 
-% Jessica M. Côté, Frances A. Hotchkiss, Marinna Martini, Charles R. Denham
-% Revisions by: Andrée L. Ramsey, Stephen Ruane
+% Jessica M. Cï¿½tï¿½, Frances A. Hotchkiss, Marinna Martini, Charles R. Denham
+% Revisions by: Andrï¿½e L. Ramsey, Stephen Ruane
 % U.S. Geological Survey Open File Report 00-458 
 % Check for later versions of this Open-File, it is a living document.
 %
@@ -50,10 +50,10 @@ NFIELDS = 32;
 data=zeros(1,NFIELDS);
 fld=1;  
 
-if exist('verbose') ~= 1,
+if exist('verbose','var') ~= 1,
 	verbose = 0;
 end
-if exist('select') ~= 1,
+if exist('select','var') ~= 1,
 	select = [];
 end
 
@@ -181,9 +181,9 @@ if verbose,
 	b=dec2base(data(fld),2,8);
 	if b(2) == '1', disp('	Sound speed computed from ED, ES, ET'); end
 	if b(3) == '1', disp('	ED taken from depth sensor'); end	
-	if b(4) == '1', disp('	EH taken from xducer heading sensor'); end	
-	if b(5) == '1', disp('	EP taken from xducer pitch sensor'); end	
-	if b(6) == '1', disp('	ER taken from xducer roll sensor'); end	
+	if b(4) == '1', disp('	EH taken from transducer heading sensor'); end	
+	if b(5) == '1', disp('	EP taken from transducer pitch sensor'); end	
+	if b(6) == '1', disp('	ER taken from transducer roll sensor'); end	
 	if b(7) == '1', disp('	ES derived from conductivity sensor'); end	
 	if b(8) == '1', disp('	ET taken from temperature sensor'); end	
 end

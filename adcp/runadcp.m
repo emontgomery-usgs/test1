@@ -1,5 +1,5 @@
-function [theResult, settings] = runadcp(settings);
-% RUNADCP - one of two main calling functions in the ADCP toolbox
+function [theResult, settings] = runadcp(settings)
+% RUNADCP   one of two main calling functions in the ADCP toolbox
 %           converts raw binary TRDI ADCP data to netcdf, does editing and
 %           trimming.
 %           Runs the important ADCP functions in the following order:
@@ -38,34 +38,46 @@ function [theResult, settings] = runadcp(settings);
 %     settings.theMaskFile = '8221wh.msk'; % the name of the mask file
 %     settings.theNewADCPFile = '8221whM.cdf'; % the name of the new file with the mask applied
 %     settings.trimFile = '8221whT.cdf'; % the name of the file trimmed by time out of water and by bin
-%     settings.rdi2cdf.run = 1; % force runadcp to run rdi2cdf (future implementation)
+%     settings.deployed_orientation = 'UP'; % or DOWN, to check against what is set in the ADCP
 %     settings.rdi2cdf.Mooring_number = '8221'; % mooring number (USGS) or other identifier
 %     settings.rdi2cdf.Deployment_date = '28-jun-2006';  % date the ADCP entered the water
 %     settings.rdi2cdf.Recovery_date = '19-sep-2006'; % date the ADCP exited the water
-%     settings.water_depth = 20.5; % in meters
+%     settings.rdi2cdf.goodens = [1 Inf]; % or desired ensembles
+%     settings.rdi2cdf.water_depth = 20.5; % in meters
 %     settings.rdi2cdf.ADCP_serial_number = 2054; 
-%     settings.rdi2cdf.xducer_offset = 1.235; % ADCP transducer offset from the sea bed
+%     settings.rdi2cdf.transducer_offset = 1.235; % ADCP transducer offset from the sea bed
 %     settings.rdi2cdf.pred_accuracy = 0.79; % from TRDI PLAN in cm/s
 %     settings.rdi2cdf.slow_by = 3*60+9; % clock drift
 %     settings.rdi2cdf.magnetic = 12.9; % declination in degrees, west is negative
+%     settings.rdi2cdf.goodens = [1 Inf]; % to specify a subset of ensembles
 %     settings.fixens.run = 1; % force runadcp to run fixens (future implementation)
-%     settings.runmask.noninteractive = 1; % don't bring up starbare in runmask
 %     % use this to override goodends' search for tripod tilt, etc.
 %     % use it if you are really running in batch and don't want goodends to prompt you
 %     settings.goodends.stop_date = settings.rdi2cdf.Recovery_date; % set to [] to disable
+%     % there are several methods one can use to trim bins to the surface
+%     % see trimbins.m documentation for more information
+%     %methods: 'RDI Surface Program' | 'User Input' | 'Pressure Sensor' | 'USGS Surface Program'
+%     settings.trimbins.method = 'Pressure Sensor'; 
+%     % percent of water column to make sure is preserved when trimming (1 = 100%)
+%     settings.trimbins.percentwc = 1.12; % to capture full range of tide
+%     settings.trimbins.ADCP_offset = settings.rdi2cdf.transducer_offset; % leave this alone
+%     % these control the use of RDI SURFACE.EXE program to detect the surface
+%     % if the USGS method works, then the use of SURFACE.EXE will be phased
+%     % out in the interest of cross platform useability
 %     settings.trimbins.numRawFile = settings.numRawFile; % leave this alone
 %     settings.trimbins.rawdata1 = settings.rawdata1; % leave this alone
 %     settings.trimbins.rawdata2 = settings.rawdata2; % leave this alone
 %     settings.trimbins.trimFile = settings.trimFile; % leave this alone
-%     % method to remove bins above the surface (see trimbins documentation
-%     settings.trimbins.method = 'Pressure Sensor'; %'RDI Surface Program' | 'User Input'
-%     % percent of water column to make sure is preserved when trimming (1 = 100%)
-%     settings.trimbins.percentwc = 1.12; % to capture full range of tide
-%     settings.trimbins.ADCP_offset = settings.rdi2cdf.xducer_offset; % leave this alone
 %     % path to the TRDI surface program, if you are on a PC
 %     % we have permission to distribute TRDI's surface.exe with the toolbox
 %     % so this should be your toolbox path, Demo directory
-%     settings.trimbins.progPath = 'C:\mfiles\m_cmg\adcp_tbx\trunk\Demo'; % or ''
+%     settings.trimbins.progPath = 'C:\mfiles\m_cmg\adcp_tbx\trunk\AddOns'; % or ''
+%     % these control the MATLAB surface detect algorithm findsurface.m
+%     settings.trimbins.findsurface.cdfFile = settings.rawcdf; % leave this alone
+%     settings.trimbins.findsurface.S = 32; % local salinity assumption
+%     % if you know the approximate range of the surface, you can avoid a 
+%     % dialog box by entering that information here
+%     settings.trimbins.findsurface.trimrange = []; % range to clip surface data
 %     settings.adcp2ep.epDataFile = '8221wh.nc'; % final output file name
 %     settings.adcp2ep.experiment = 'Huntington Beach, summer 2006'; % your metadata
 %     settings.adcp2ep.project = 'Coastal and Marine Geology Program, Circulation and Sediment transport'; % your metadata
@@ -91,8 +103,8 @@ function [theResult, settings] = runadcp(settings);
 % Use of this program is described in:
 %
 % Acoustic Doppler Current Profiler Data Processing System Manual 
-% Jessica M. Côté, Frances A. Hotchkiss, Marinna Martini, Charles R. Denham
-% Revisions by: Andrée L. Ramsey, Stephen Ruane
+% Jessica M. Cï¿½tï¿½, Frances A. Hotchkiss, Marinna Martini, Charles R. Denham
+% Revisions by: Andrï¿½e L. Ramsey, Stephen Ruane
 % U.S. Geological Survey Open File Report 00-458 
 % Check for later versions of this Open-File, it is a living document.
 %
@@ -125,6 +137,9 @@ function [theResult, settings] = runadcp(settings);
 %	runmask.m (incorporates all masking functions)
 %   pressurecalcs.m
 %
+% updates 14-mar-2008 (MM) - allow non BEAM data to be masked
+% updated 7-feb-2008 (MM) - remove redundancy of pressure calcs being run
+% here and in trimbins, remove calls to starbeam and starbare
 % updated 3-may-2007 (MM) - add an auto override option for stop date in goodends
 % updated 31-jan-2007 (MM) - add the option of using a structure to provide
 % inputs for automated processing, rather than "batch mode"
@@ -146,26 +161,37 @@ if nargin < 1, help(mfilename), end
 
 %% set up metadata and file names
 if exist('settings','var')
-   numRawFile = settings.numRawFile;
-   rawdata1 = settings.rawdata1;
-   %theFile1 = rawdata1;
-   rawdata2 = settings.rawdata2;
-   %theFile2 = rawdata2;
-   rawcdf = settings.rawcdf;
-   theFilledFile = settings.theFilledFile;
-   theMaskFile = settings.theMaskFile;
-   theNewADCPFile = settings.theNewADCPFile;
-   trimFile = settings.trimFile;
+    fields = {'numRawFile', 'rawdata1', 'rawdata2', 'rawcdf', 'theFilledFile',...
+        'theMaskFile', 'theNewADCPFile', 'trimFile', 'deployed_orientation'};
+    for ifield = 1:length(fields),
+        if isfield(settings,fields{ifield}), 
+            eval(sprintf('%s = settings.%s;',fields{ifield},fields{ifield}))
+        else eval(sprintf('%s = [];',fields{ifield}))
+        end
+    end
+%    numRawFile = settings.numRawFile;
+%    rawdata1 = settings.rawdata1;
+%    %theFile1 = rawdata1;
+%    rawdata2 = settings.rawdata2;
+%    %theFile2 = rawdata2;
+%    rawcdf = settings.rawcdf;
+%    theFilledFile = settings.theFilledFile;
+%    theMaskFile = settings.theMaskFile;
+%    theNewADCPFile = settings.theNewADCPFile;
+%    trimFile = settings.trimFile;
+%    deployed_orientation = settings.deployed_orientation;
 end
 
 if ~exist('numRawFile','var') || isempty(numRawFile),
     numRawFile = menu('How many binary files used?',{'1','2'}); 
 end
+% TODO - this sequence of using '*' instead of empty matrix is unweildy and
+% could be cleaned up.
 if ~exist('rawdata1','var') || isempty(rawdata1), rawdata1 = '*'; end
 if ~exist('rawdata2','var') || isempty(rawdata2), rawdata2 = '*'; end
 if ~exist('theNewADCPFile','var') || isempty(theNewADCPFile), theNewADCPFile = '*'; end
 if ~exist('trimFile','var') || isempty(trimFile), trimFile = '*'; end
-if ~exist('theMaskFile','var'), theMaskFile = '*', end
+if ~exist('theMaskFile','var'), theMaskFile = '*'; end
 
 % Get ADCP raw data filename.
 switch numRawFile
@@ -191,20 +217,17 @@ switch numRawFile
             %rawdata1 = [thePath1 theFile1];
         end
         if any(rawdata2 == '*')
-            [theFile2, thePath2] = uigetfile({'*.000','*.000, ADCP ensembles direct from ADCP or wavesmon 2.x';...
+            [theFile2] = uigetfile({'*.000','*.000, ADCP ensembles direct from ADCP or wavesmon 2.x';...
                 '*.PD0','*.PD0, ADCP ensembles from wavesmon 3.x'}, 'Select Binary ADCP File:');
             if ~any(theFile2), return, end
-            if thePath2(end) ~= filesep, thePath2(end+1) = filesep; end
-            %rawdata2 = [thePath2 theFile2];
         end
         if exist('settings','var'),
             theFile1 = rawdata1;
             theFile2 = rawdata2;
             thePath1 = pwd;
         end
-        if exist('settings','var'), thePath1 = pwd; end
-        %If there are two binary files that make up the dataset, concatonate them now
-        if exist(theFile2)
+          %If there are two binary files that make up the dataset, concatonate them now
+        if exist(theFile2,'file'),
             theFile = [theFile1(1:5) 'all.000'];
             if exist(theFile,'file'), delete(theFile); end
             fappend(theFile,theFile1,theFile2);
@@ -213,12 +236,14 @@ switch numRawFile
             rawdata = [thePath theFile];
             settings.rawdata = rawdata;
             clear rawdata1 rawdata2 theFile1 thePath1 theFile2 thePath2 ss w
+        else
+            disp(sprintf('Unable to find %s, using only %s',theFile2, theFile1))
         end
 end
 
 % Get ADCP netcdf filename if not given
 if ~exist('rawcdf','var') || isempty(rawcdf)
-   [PATH,NAME,EXT,VER] = fileparts(rawdata);
+   [PATH,NAME] = fileparts(rawdata);
    [theFile, thePath] = uiputfile([NAME '.cdf'],...
       'Save Netcdf ADCP File As (or press cancel to use an existing file):');
    if ~any(theFile), 
@@ -229,44 +254,65 @@ if ~exist('rawcdf','var') || isempty(rawcdf)
    rawcdf = [thePath theFile];
 end
 
-[rootPath,rootName,EXT,VER] = fileparts(rawcdf);
+[rootPath,rootName] = fileparts(rawcdf);
 
 %% convert to raw netCDF
-if ~exist('settings','var') || settings.rdi2cdf.run,
-    if ~isempty(rawcdf) && isequal(exist(rawcdf),0)
-        disp(['Converting RDI data file to netcdf'])
+if exist('settings','var'),
+    if ~isempty(rawcdf) && ~exist(rawcdf,'file'),
+        disp('Converting RDI data file to netcdf')
         disp(' ')
-        if exist('settings','var') & isfield(settings,'rdi2cdf'),
-            status = rdi2cdf(rawdata,rawcdf,[],[],settings.rdi2cdf); % user's provideing metadata
+        if exist('settings','var') && isfield(settings,'rdi2cdf'),
+            if isfield(settings.rdi2cdf, 'goodens'), goodens = settings.rdi2cdf.goodens;
+            else goodens = [1 Inf];
+            end
+            status = rdi2cdf(rawdata,rawcdf,goodens(1),goodens(2),settings.rdi2cdf); % user's provideing metadata
         else
             disp('You will be asked for some inputs from the mooring log')
             status = rdi2cdf(rawdata,rawcdf); % user will be prompted
         end
         if status < 0,
-            disp('runadcp: There was a problem with the raw data')
+            disp('runadcp: There was a problem with the raw data file')
             return
         end
-        if ~exist('settings','var')
-            disp('In the following figure quickly review the data');
-            disp('Then click "Done" on the Starbeam menu, and hit enter');
-            pause(5)
-            starbeam(rawcdf);
-            pause
-        end
-    elseif isequal(exist(rawcdf),2)
+        % do not allow data review, starbeam is too unreliable
+        %         if ~exist('settings','var')
+        %             disp('In the following figure quickly review the data');
+        %             disp('Then click "Done" on the Starbeam menu, and hit enter');
+        %             pause(5)
+        %             starbeam(rawcdf);
+        %             pause
+        %         end
+    elseif exist(rawcdf,'file')
         disp(' ')
         disp('Rdi2cdf.m was skipped.')
         disp(['Use existing netcdf file ' rawcdf ]);
         disp(' ')
     else
+        disp(sprintf('%s: Unable to find a file to process', mfilename));
         return
     end
-else
-    disp('rdi2cdf execution suppressed by settings')
+else % we are interactive
+    disp('You will be asked for some inputs from the mooring log')
+    status = rdi2cdf(rawdata,rawcdf); % user will be prompted
+    if status < 0,
+        disp('runadcp: There was a problem with the raw data file')
+        return
+    end
 end
 
+%% Check for matching orientation
+if ~exist('deployed_orientation','var') || isempty(deployed_orientation),
+    fixorientation(rawcdf);
+else
+    fixorientation(rawcdf,deployed_orientation);    
+end
+
+
 %% Check for missing ensemble numbers 
-if ~exist('settings','var') || settings.fixens.run,
+if ~exist('settings','var') || ~isfield(settings,'fixens') || ~isfield(settings.fixens, 'run'),
+    settings.fixens.run = 1;
+end
+if settings.fixens.run,
     if ~exist('theFilledFile','var') || isempty(theFilledFile)
         %[PATH,NAME,EXT,VER] = fileparts(theFilledFile);
         [theFile, thePath] = uiputfile([rootName 'F.cdf'],...
@@ -278,7 +324,7 @@ if ~exist('settings','var') || settings.fixens.run,
     disp(sprintf('[missEnsNo] = fixEns(''%s'',''%s'');',rawcdf,theFilledFile))
     [missEnsNo] = fixEns(rawcdf,theFilledFile);
 else
-    disp('fixens execustion suppressed by settings, no missing ensembles')
+    disp('fixens execution suppressed by settings, no missing ensembles')
     missEnsNo = 0; % override
 end
 
@@ -289,53 +335,31 @@ if missEnsNo ~= 0
    disp(['Using new filled file ' theFilledFile])
 end
 
-%find out if beam or earth
-F = netcdf(rawcdf,'nowrite');   
-coord = F.transform(:);
-
-%Give mask file a name
-switch coord
-   
-case 'BEAM'
-	if any(theMaskFile == '*') 
-  	 	mask='*.msk';
-  		[theFile, thePath] = uiputfile(mask, 'Create Mask File As:');
-		if ~any(theFile), return, end
-		if thePath(end) ~= filesep, thePath(end+1) = filesep; end
-		theMaskFile = [thePath theFile];
-	end
-
-	% Get ADCP filename.
-	if any(theNewADCPFile == '*')
-		[theFile, thePath] = uiputfile([rootName,'M.cdf'],...
-            'Save masked ADCP File As:');
-		if ~any(theFile), return, end
-		if thePath(end) ~= filesep, thePath(end+1) = filesep; end
-		theNewADCPFile = [thePath theFile];
-	end
-
-	%Mask the data file based on RDI criteria
-	disp('')
-	disp('Running mask functions to remove bad data points')
-   disp('')
-   
-   if exist('settings','var') && isfield(settings,'runmask') && ...
-           isfield(settings.runmask,'noninteractive') 
-            noninteractive = settings.runmask.noninteractive;
-   else
-       noninteractive = 0;
-   end
-   [theNewADCPFile, theMaskFile] = runmask(rawcdf,theMaskFile,theNewADCPFile,...
-       noninteractive);
-   
-case 'EARTH'
-   disp('')
-	disp('Data in Earth coordinates, Masking was not performed')
-	disp('')
-   theNewADCPFile = rawcdf; 
+if any(theMaskFile == '*')
+    mask='*.msk';
+    [theFile, thePath] = uiputfile(mask, 'Create Mask File As:');
+    if ~any(theFile), return, end
+    if thePath(end) ~= filesep, thePath(end+1) = filesep; end
+    theMaskFile = [thePath theFile];
 end
 
-%% trimming the bins
+% Get ADCP filename.
+if any(theNewADCPFile == '*')
+    [theFile, thePath] = uiputfile([rootName,'M.cdf'],...
+        'Save masked ADCP File As:');
+    if ~any(theFile), return, end
+    if thePath(end) ~= filesep, thePath(end+1) = filesep; end
+    theNewADCPFile = [thePath theFile];
+end
+
+%Mask the data file based on RDI criteria
+disp('')
+disp('Running default mask functions to remove bad data points')
+disp('')
+
+[theNewADCPFile, theMaskFile] = runmask(rawcdf,theMaskFile,theNewADCPFile,1);
+
+%% trimming end to end and top to bottom
 %Find the first and last good ensemble and trim the data record
 if ~isfield(settings, 'goodends'),
     settings.goodends.stop_date = [];
@@ -347,38 +371,15 @@ if isempty(minens) || isempty(maxens), %  user cancelled
     return
 end
 
-%find out if up or down
-F = netcdf(rawcdf,'nowrite');   
-orientation = F.orientation(:);
-
-switch orientation   
-    case 'UP'
-        % close(F)
-        F = netcdf(rawcdf,'nowrite');
-        pressuresensor = F.depth_sensor(:);   %upload sensor information
-        close(F);
-        switch pressuresensor           %check for pressure sensor
-            case 'YES'  %if pressure sensor installed
-                disp('using pressure sensor data to trim bins')
-                [MSL, Dstd, Dout] = pressurecalcs(trimFile); %derives mean and standard
-                %deviation from pressure sensor
-                %[MSL, Dstd] = trimbins(1,rawdata,'',trimFile,MSL,Dstd,'','',Dout); % trim the bins
-                settings.trimbins.MSL = MSL;
-                settings.trimbins.Dstd = Dstd;
-                settings.trimbins.Dout = Dout;
-                [MSL, Dstd] = trimbins(settings.trimbins); % trim the bins
-            case 'NO' %if no pressure sensor installed
-                if ~exist('settings','var') || ~isfield(settings','trimbins'), % need info, go interactive 
-                    [MSL, Dstd] = trimbins(1,rawdata,'',trimFile); % trim the bins
-                else
-                    [MSL, Dstd] = trimbins(settings.trimbins); % trim the bins
-                end
-        end %pressuresensor switch
-    case 'DOWN'
-        close(F);
-        disp('Data is orientated downward. Trimbins.m was not run')
+% trimbins should always be run
+% trimbins finds range to boundary and sets bin depths
+% trimbins takes care of Up Down issues internally
+if ~exist('settings','var') || ~isfield(settings','trimbins'), % need info, go interactive
+    trimbins(1,rawdata,'',trimFile); % trim the bins
+else
+    % don't forget to pass the trimfile in so user doesn't get pestered
+    settings.trimbins.trimFile = trimFile;
+    trimbins(settings.trimbins); % trim the bins
 end
-
-%Scan data for bins out of water based on depth+tidal variation
 
 theResult = trimFile;

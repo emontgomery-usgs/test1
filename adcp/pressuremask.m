@@ -45,14 +45,18 @@ function [theNewADCPFile, theMaskFile] = pressuremask (theDataFile,theMaskFile,t
 %
 %%% END USGS BOILERPLATE --------------
 
- 
+% Updated 11-feb-2008 (MM) to accommodate new name for height, now brange.
 % Written by Marinna Martini, USGS Woods Hole Science Center
 % 18-Jan-2006
 
+% get the current SVN version- the value is automatically obtained in svn
+% is the file's svn.keywords which is set to "Revision"
+rev_info = 'SVN $Revision: 1051 $';
+disp(sprintf('%s %s running',mfilename,rev_info))
 
 if ~exist('theDataFile','var'), theDataFile = ''; end
 if ~exist('theMaskFile','var'), theMaskFile = ''; end
-if ~exist('theNewADCPFile','var'), theMaskFile = ''; end
+if ~exist('theNewADCPFile','var'), theNewADCPFile = ''; end
 if ~exist('thePad','var'), thePad = 0; end
 if length(thePad) > 1, 
     disp('pressuremask: thePad must be a scalar')
@@ -94,8 +98,8 @@ if exist('heightData','var'), % user has an override
 else % use data from in the file
     % first, make sure there is valid pressure data in the netCDF file
     % check the global variable to see if pressure sensor is present
-    if strcmp(cdf.depth_sensor(:),'YES') & ~isempty(cdf{'Pressure'}),
-        if ~strcmp(cdf.orientation(:),'UP'), % make sure we are looking up at the surface...
+    if strcmp(upper(cdf.depth_sensor(:)),'YES') && ~isempty(cdf{'Pressure'}),
+        if ~strcmp(upper(cdf.orientation(:)),'UP'), % make sure we are looking up at the surface...
             disp(sprintf('Orientation is %s, above surface depths cannot be automatically masked', cdf.orientation(:)))
             close(cdf); theNewADCPFile = []; return
         else % pressure is OK populate based on pressure
@@ -104,8 +108,9 @@ else % use data from in the file
             disp(sprintf('minimum pressure is %f db', gmin(pdata)))
             disp(sprintf('maximum pressure is %f db', gmax(pdata)))
         end
-    elseif ~isempty(cdf{'height'}), % no pressure, try for height
-        pdata = cdf{'height'}(:); %alreadt in m
+    elseif ~isempty(cdf{'height'}) || ~isempty(cdf{'brange'}), % no pressure, try for height
+        pdata = cdf{'height'}(:); %already in m
+        if isempty(pdata), pdata = cdf{'brange'}(:); end
         % do some smart massage
         % first remove the zeros
         idx = find(pdata == 0);
@@ -134,8 +139,8 @@ if ~exist('theNewADCPFile','var') || isempty(theNewADCPFile),
 end
 if exist(theMaskFile,'file'),
     disp(['pressuremask: using existing mask file ',theMaskFile])
-else,
-    ncmkmask(theDataFile,theMaskFile);
+else
+    mkadcpmask(theDataFile,theMaskFile);
     disp(['The Mask file ' theMaskFile ' was created'])
 end
 
