@@ -22,21 +22,24 @@
 % operation = autoclean
 %   there are no settings for this, they are automatic
 %   applies thumbfinger, deglitch1vector
+% operation = thumbfinger
+%   operates on heading, pitch, roll, temperature, velocity, pressure unless
+%   variable names are provided
+%   *settings.nsd = 2.8; % remove anything beyone this number of std. dev.
+%   settings.nsd_pr = 20; % use a higher threhsold to treat pressure
+%   settings.rvalue = 'mean'; % mean is default, coule be median or a #
 % operation = deglitch1vector
 %   uses the deglitch1vector function
 %   settings.samplerate = 1; % Hz, taken from the netCDF file
-%   settings.nsd = 2.8; % num std. deviations that defines outliers
+%   *settings.nsd = 2.8; % num std. deviations that defines outliers
 %   settings.ndt = 6; % cutoff frequency
-%   settings.verbose = turn on statistical output
+%   settings.verbose = 1; % turn on statistical output
+%   settings.threshold = 7; % a threshold for computing std on a different
+%     chunk of the data.  7 is default, larger might be reasonable in some cases
 %   Note that deglitch1vector cannot tolerate NaNs
 % operation = checkcorr
 %   operates only on velocity, other variables ignored
 %   settings.locorr = 65; % remove anything below this correlation value
-%   settings.rvalue = NaN; % remove anything below this correlation value
-% operation = thumbfinger
-%   operates on heading, pitch, roll, temperature, velocity unless
-%   variable names are provided
-%   settings.nsd = 2.8; % remove anything beyone this number of std. dev.
 % operation = clip
 %   operates on a variable you must name
 %   settings.min = miniumum acceptable value for data
@@ -809,9 +812,9 @@ if strcmp(operation, 'fix_vbrange')
     ops='min-max, std';
     vars=char(variables);
     vvv= [settings.min settings.max settings.nstds];
-    hstring = cdfs.history(:);
-    cdfs.history = sprintf('%s; %s %s applied %s on %s with %s = %d-%d  %f: %s',...
-        mfilename, mversion, opstring, vars, ops, vvv,hstring);
+hstring = cdfs.history(:);
+cdfs.history = sprintf('%s; %s %s applied %s with %s = %f',...
+    hstring, mfilename, mversion, opstring, ops, vvv);
     hstring = cdfq.history(:);
     cdfq.history = sprintf('%s %s applied %s with %s = %d-%d %f: %s',...
         mfilename, mversion, opstring, vars, ops, vvv, hstring);
@@ -829,6 +832,13 @@ else
 
 end
 close(cdfs);
+hstring = cdfb.history(:);
+cdfb.history = sprintf('%s; %s %s applied %s with %s = %f',...
+    hstring, mfilename, mversion, opstring, ops, vvv);
+close(cdfb);
+hstring = cdfq.history(:);
+cdfq.history = sprintf('%s; %s %s applied %s with %s = %f',...
+    hstring, mfilename, mversion, opstring, ops, vvv);
 close(cdfq);
 disp(sprintf('Finished fixing bursts in %f min',toc/60))
 
