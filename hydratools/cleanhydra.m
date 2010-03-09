@@ -807,17 +807,18 @@ else         % thumbfinger or deglitch1vector of fix_vbrange
     ops='nsd';
 end
 
-
-if strcmp(operation, 'fix_vbrange')
+if strcmp(operation, 'fix_vbrange') % doesn't apply to burst file
     ops='min-max, std';
     vars=char(variables);
     vvv= [settings.min settings.max settings.nstds];
-hstring = cdfs.history(:);
-cdfs.history = sprintf('%s; %s %s applied %s with %s = %f',...
+    hstring = cdfs.history(:);
+    cdfs.history = sprintf('%s; %s %s applied %s with %s = %f',...
     hstring, mfilename, mversion, opstring, ops, vvv);
     hstring = cdfq.history(:);
     cdfq.history = sprintf('%s %s applied %s with %s = %d-%d %f: %s',...
         mfilename, mversion, opstring, vars, ops, vvv, hstring);
+    close(cdfs);
+    close(cdfq);
 else
     hstring = cdfs.history(:);
     cdfs.history = sprintf('%s %s applied %s with %s = %f: %s',...
@@ -829,17 +830,9 @@ else
     cdfq.history = sprintf('%s %s applied %s with %s = %f: %s',...
          mfilename, mversion, opstring, ops, vvv, hstring);
     close(cdfb);
-
+    close(cdfs);
+    close(cdfq);
 end
-close(cdfs);
-hstring = cdfb.history(:);
-cdfb.history = sprintf('%s; %s %s applied %s with %s = %f',...
-    hstring, mfilename, mversion, opstring, ops, vvv);
-close(cdfb);
-hstring = cdfq.history(:);
-cdfq.history = sprintf('%s; %s %s applied %s with %s = %f',...
-    hstring, mfilename, mversion, opstring, ops, vvv);
-close(cdfq);
 disp(sprintf('Finished fixing bursts in %f min',toc/60))
 
 return
