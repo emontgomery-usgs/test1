@@ -22,15 +22,10 @@ t836.rd=[-0.4692 0.5027];
 % when there are 4 things, it's [x1,y1, x2, y2]
 % adcp - from sonar_tripod_plot07 [ax ay]
 t836.adcp=[0 0 0 0.30];
-% pencil beam - from sonar_tripod_plot07 [px py]
-t836.pen=[0.5813 -1.4638 (0.5813-.0035) (-1.4638-.55)];
-% fan sonar - from sonar_tripod_plot07 [fx yy]
-t836.fan=[0.0983 -0.4802 (.0983-.005) (-0.4802-.1125)];
-% bottom camera
-%t836.cam=[0.110 -0.559];
-% aqudop (location added after the recovery)
-% used the undreneath position to get to the angled vector for aqd +x
-%t836.aqd=[-.11 -.97 -.095 -.775]
+% pencil beam - from sonar_tripod_plot07 [px py px0 py0]
+t836.pen=[0.5813 -1.4368 0.9299 -1.8707];
+% fan sonar - from sonar_tripod_plot07 [fx yy fx0 fy0]
+t836.fan=[0.0983 -0.4802 .6175 -1.4795];
 
 if ~(strcmpi(mk_plts,'n'))
 figure
@@ -76,7 +71,7 @@ title('tripod 836- for MVCO-07')
 [adcp_th,adcp_rng]=cart2pol(t836.adcp(3)-t836.adcp(1),t836.adcp(4)-t836.adcp(2));
 [fan_th,fan_rng]=cart2pol(t836.fan(3)-t836.fan(1),t836.fan(4)-t836.fan(2));
 [pen_th,pen_rng]=cart2pol(t836.pen(3)-t836.pen(1),t836.pen(4)-t836.pen(2));
-[aqd_th,aqd_rng]=cart2pol(t836.aqd(3)-t836.aqd(1),t836.aqd(4)-t836.aqd(2));
+%[aqd_th,aqd_rng]=cart2pol(t836.aqd(3)-t836.aqd(1),t836.aqd(4)-t836.aqd(2));
 figure
 h2=polar(pen_th, pen_rng,'ch');
 set(h2,'MarkerFaceColor','c')
@@ -85,9 +80,9 @@ h1=polar(adcp_th, adcp_rng,'ks');
 set(h1,'MarkerFaceColor','k')
 h3=polar(fan_th, fan_rng,'md');
 set(h3,'MarkerFaceColor','r')
-h3=polar(aqd_th, aqd_rng,'g^');
-set(h3,'MarkerFaceColor','g')
- xlabel('adcp=square, aquadop=triangle, pencil= hexagram, fan=diamond')
+%h3=polar(aqd_th, aqd_rng,'g^');
+%set(h3,'MarkerFaceColor','g')
+ xlabel('adcp=square, pencil= hexagram, fan=diamond')
 hold off
 title('tripod 836- for MVCO-07')
 

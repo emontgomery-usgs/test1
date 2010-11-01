@@ -1,4 +1,4 @@
-%script mk_overlay
+%script mk_overlay_mvco07
 % mk_overlay places a tripod's instruments on a processed fan image to verify 
 % orientation is correct.
 %  Made for hatteras09 tripod 855 data.  Currently uses a processed file
