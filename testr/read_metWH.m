@@ -47,7 +47,7 @@ for i = 1:length(fnames)   %set this to the number of data files you have
             [hch,S.hdg(seqno),mdd,hd_dir,mvar,var_dir,fini]=strread(str,'%s%n%n%s%n%s%s','delimiter',',','emptyvalue',NaN);
         elseif strmatch(type_str,'$GPZD')
             [att,hms,da,mo,yr,gmtoff,fini]=strread(str,'%s%s%s%s%s%s%s','delimiter',',','emptyvalue',NaN);
-            S.date(seqno)=cellstr([char(da) '/' char(mo) '/' char(yr)]);
+            S.date(seqno)=cellstr([char(mo) '/' char(da) '/' char(yr)]);
             S.day(seqno)=str2double(char(da));
             S.month(seqno)=str2double(char(mo));
             S.year(seqno)=str2double(char(yr));
@@ -68,12 +68,26 @@ for i = 1:length(fnames)   %set this to the number of data files you have
         end
     end
     % now print out the data as csv for JB
-    % columns are: month, day, year, hour, minute, second, barPr, Temp, RelH, Wdir, Wspd, east, north.
+    % columns are: month, day, year, hour, minute, second, hdg, barPr, Temp, RelH, Wdir, Wspd, east, north.
     C=struct2cell(S);
     csvwrite('airmarWH.csv',[C{11}' C{10}' C{12}' C{14}' C{15}' C{16}' C{1}' C{2}' C{3}' C{4}' C{5}' C{6}' C{7}' C{8}'])
     % the contents of columns 9, 13 and 17 are the date, time and Acument
     % time strings that don't play nice with simple printint like this.
     %
+    % here's a fancier way to do it:
+    nrows=length(C{1});
+    spcs={' '};
+    spcs2=repmat(spcs,nrows,1);
+    dst=strcat(C{9}', spcs2, C{13}', spcs2) 
+    fmto=strcat(dst,num2str(C{3}'), spcs2, num2str(C{2}'), spcs2, num2str(C{4}'), spcs2);
+    fmtdo=strcat(fmto,num2str(C{1}'), spcs2, num2str(C{5}'), spcs2, num2str(C{6}'), spcs2);
+    fmtdout=strcat(fmtdo,num2str(C{7}'), spcs2, num2str(C{8}'))
+    % columns are date, time, hdg, barPr, Temp, RelH, Wdir, Wspd, east, north
+    fid=fopen('AirMarWHout.txt','W')
+    for rw=1:nrows
+      fprintf(fid,'%s\n', fmtdout{rw,:});
+    end
+   %
     disp(['Closing File ' fname])
     fclose(metdat);
     %     if rem(i,24)==0
