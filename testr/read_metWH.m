@@ -67,6 +67,15 @@ for i = 1:length(fnames)   %set this to the number of data files you have
         else
         end
     end
+
+    disp(['Closing File ' fname])
+    fclose(metdat);
+    %     if rem(i,24)==0
+    %         matname = ['Rawdata' num2str(i/24)];
+    %         save(matname,'S');
+    %         disp(['Saving data to ' matname])
+    %     end
+end
     % now print out the data as csv for JB
     % columns are: month, day, year, hour, minute, second, hdg, barPr, Temp, RelH, Wdir, Wspd, east, north.
     C=struct2cell(S);
@@ -78,22 +87,14 @@ for i = 1:length(fnames)   %set this to the number of data files you have
     nrows=length(C{1});
     spcs={' '};
     spcs2=repmat(spcs,nrows,1);
-    dst=strcat(C{9}', spcs2, C{13}', spcs2) 
+    dst=strcat(C{9}', spcs2, C{13}', spcs2);
     fmto=strcat(dst,num2str(C{3}'), spcs2, num2str(C{2}'), spcs2, num2str(C{4}'), spcs2);
     fmtdo=strcat(fmto,num2str(C{1}'), spcs2, num2str(C{5}'), spcs2, num2str(C{6}'), spcs2);
-    fmtdout=strcat(fmtdo,num2str(C{7}'), spcs2, num2str(C{8}'))
+    fmtdout=strcat(fmtdo,num2str(C{7}'), spcs2, num2str(C{8}'));
     % columns are date, time, hdg, barPr, Temp, RelH, Wdir, Wspd, east, north
     fid=fopen('AirMarWHout.txt','W')
     for rw=1:nrows
       fprintf(fid,'%s\n', fmtdout{rw,:});
     end
-   %
-    disp(['Closing File ' fname])
-    fclose(metdat);
-    %     if rem(i,24)==0
-    %         matname = ['Rawdata' num2str(i/24)];
-    %         save(matname,'S');
-    %         disp(['Saving data to ' matname])
-    %     end
-end
+   fclose(fid);
 disp(['Processing took ',num2str(toc/60),' minutes']);
